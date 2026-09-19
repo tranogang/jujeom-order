@@ -7,20 +7,17 @@
 <title>주방 · 조리 현황</title>
 <style>
   :root{
-    /* 흰색 유니폼 — 배경 흰색, 포인트 블루 */
-    --board:#ffffff; --board2:#f5f8fc; --line:#dde6f1;
+    --bg:#ffffff; --card:#ffffff; --sub:#f5f8fc; --line:#dde6f1;
     --txt:#141a22; --muted:#6b7684;
-    --blue:#0b4da2; --navy:#06306b; --grass:#1e7a46;
-    --amber:#c2410c; --red:#dc2626; --seam:#d32f2f;
+    --blue:#0b4da2; --grass:#1e7a46; --red:#dc2626;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
-  body{background:var(--board);color:var(--txt);
+  body{background:var(--bg);color:var(--txt);
        font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
        display:flex;flex-direction:column;overflow:hidden}
   button{font-family:inherit}
 
-  /* ── 전광판 헤더 ── */
   header{flex:0 0 auto;display:flex;align-items:center;gap:16px;
          padding:14px 22px;border-bottom:4px solid var(--blue);background:#fff}
   .ball{width:30px;height:30px;flex:0 0 auto}
@@ -28,82 +25,81 @@
   .ttl small{display:block;font-size:11px;font-weight:700;color:var(--blue);
              letter-spacing:.14em;margin-top:2px}
   .spacer{flex:1}
-  .stat{text-align:center;padding:0 14px;border-left:1px solid var(--line)}
-  .stat .n{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  .stat{text-align:center;padding:0 16px;border-left:1px solid var(--line)}
+  .stat .n{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;
+           color:var(--blue)}
   .stat .l{font-size:11px;color:var(--muted);margin-top:3px}
-  .stat.wait .n{color:var(--blue)}
-  .stat.cook .n{color:var(--amber)}
+  .stat.done .n{color:var(--grass)}
   .clock{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;
-         color:var(--blue);padding-left:16px;border-left:1px solid var(--line)}
+         color:var(--txt);padding-left:16px;border-left:1px solid var(--line)}
   .conn{font-size:11px;color:var(--muted);margin-top:3px;text-align:center}
 
-  /* ── 보드 ── */
-  main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);
-       min-height:0}
-  section{background:var(--board);display:flex;flex-direction:column;min-height:0}
-  .sec-head{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:12px 18px;
-            background:var(--board2);border-bottom:1px solid var(--line)}
-  .dot{width:10px;height:10px;border-radius:50%}
-  .sec-head b{font-size:15px;letter-spacing:.02em}
-  .sec-head .cnt{margin-left:auto;font-size:15px;font-weight:800;color:var(--muted);
-                 font-variant-numeric:tabular-nums}
-  .cards{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
-  .cards::-webkit-scrollbar{width:8px}
-  .cards::-webkit-scrollbar-thumb{background:#c5d2e2;border-radius:4px}
+  main{flex:1;overflow-y:auto;padding:16px;min-height:0;
+       display:grid;gap:14px;align-content:start;
+       grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+  main::-webkit-scrollbar{width:9px}
+  main::-webkit-scrollbar-thumb{background:#c5d2e2;border-radius:5px}
 
-  .card{background:var(--board2);border:1px solid var(--line);border-radius:14px;
-        padding:16px 16px 14px;border-left:6px solid var(--blue)}
-  .card.cooking{border-left-color:var(--amber)}
-  .card.late{border-left-color:var(--red);background:#fff1f1}
-  .card.new{animation:flash 1.1s ease-in-out 3}
-  @keyframes flash{50%{background:#e4eefc}}
+  .card{background:var(--card);border:1px solid var(--line);border-left:7px solid var(--blue);
+        border-radius:14px;padding:16px;display:flex;flex-direction:column}
+  .card.late{border-left-color:var(--red);background:#fff5f5}
+  .card.fresh{animation:pop .5s ease-out}
+  @keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
 
-  .c-top{display:flex;align-items:center;gap:10px}
-  .table{background:var(--blue);color:#fff;font-size:20px;font-weight:800;
-         min-width:56px;height:44px;border-radius:10px;display:grid;place-items:center;padding:0 10px}
-  .card.cooking .table{background:var(--amber);color:#fff}
+  .c-top{display:flex;align-items:center;gap:12px}
+  .table{background:var(--blue);color:#fff;font-size:22px;font-weight:800;
+         min-width:62px;height:48px;border-radius:11px;display:grid;place-items:center;padding:0 10px}
   .card.late .table{background:var(--red)}
-  .who{font-size:15px;font-weight:700}
-  .no{font-size:11px;color:var(--muted);margin-top:2px}
+  .who{font-size:14px;color:var(--muted);font-weight:600}
+  .no{font-size:11px;color:#9aa7b8;margin-top:2px}
   .elapsed{margin-left:auto;text-align:right}
-  .elapsed .m{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+  .elapsed .m{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
   .elapsed .s{font-size:11px;color:var(--muted)}
   .card.late .elapsed .m{color:var(--red)}
 
-  .items{margin:14px 0 4px;display:flex;flex-direction:column;gap:7px}
-  .it{display:flex;align-items:baseline;gap:10px;font-size:19px;font-weight:700;line-height:1.3}
-  .it .q{background:#e4eefc;border:1px solid #cddffa;border-radius:7px;
-         min-width:38px;text-align:center;padding:3px 6px;font-size:17px;font-weight:800;
+  .items{margin:16px 0 6px;display:flex;flex-direction:column;gap:9px}
+  .it{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;line-height:1.25}
+  .it .q{background:#e4eefc;border:1px solid #cddffa;border-radius:8px;
+         min-width:44px;text-align:center;padding:4px 8px;font-size:20px;font-weight:800;
          color:var(--blue);flex:0 0 auto}
 
-  .act{width:100%;margin-top:14px;height:52px;border:0;border-radius:11px;
-       font-size:17px;font-weight:800;color:#fff;background:var(--grass);
-       box-shadow:0 3px 0 rgba(0,0,0,.15)}
-  .act.start{background:var(--blue)}
-  .act:active{transform:translateY(2px)}
+  .act{width:100%;margin-top:auto;padding-top:16px}
+  .act button{width:100%;height:58px;border:0;border-radius:12px;
+              font-size:19px;font-weight:800;color:#fff;background:var(--grass);
+              box-shadow:0 3px 0 #14532d}
+  .act button:active{transform:translateY(2px);box-shadow:0 1px 0 #14532d}
 
-  .empty{flex:1;display:grid;place-items:center;color:#9aa7b8;font-size:15px}
+  .empty{grid-column:1/-1;display:grid;place-items:center;padding:80px 20px;
+         color:#9aa7b8;font-size:16px;text-align:center;line-height:1.8}
 
-  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+  footer{flex:0 0 auto;border-top:1px solid var(--line);background:var(--sub);
+         padding:10px 16px;display:flex;align-items:center;gap:10px;overflow-x:auto}
+  footer .lbl{font-size:12px;color:var(--muted);font-weight:700;flex:0 0 auto}
+  .undo{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:#fff;
+        border:1px solid var(--line);border-radius:999px;padding:6px 8px 6px 12px;font-size:13px}
+  .undo b{font-weight:800}
+  .undo button{border:0;background:var(--sub);border-radius:999px;padding:5px 10px;
+               font-size:12px;font-weight:700;color:var(--blue)}
+
+  .toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);
          background:var(--txt);color:#fff;font-weight:800;font-size:15px;
          padding:12px 22px;border-radius:999px;opacity:0;pointer-events:none;
          transition:opacity .25s;z-index:50}
   .toast.on{opacity:1}
 
-  .setup{position:fixed;inset:0;background:var(--board);display:none;
-         place-items:center;padding:30px;z-index:60;text-align:center}
+  .setup{position:fixed;inset:0;background:#fff;display:none;place-items:center;
+         padding:30px;z-index:60;text-align:center}
   .setup.on{display:grid}
-  .setup .box{max-width:520px}
-  .setup h2{font-size:22px;margin:0 0 12px}
-  .setup p{color:var(--muted);font-size:15px;line-height:1.7}
-  .uid{margin-top:16px;background:var(--board2);border:1px solid var(--line);border-radius:10px;
+  .uid{margin-top:16px;background:var(--sub);border:1px solid var(--line);border-radius:10px;
        padding:14px;font-size:15px;font-weight:800;color:var(--blue);word-break:break-all}
 
-  @media (max-width:900px){
-    main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  @media (max-width:640px){
+    header{padding:12px 14px;gap:10px}
     .ttl{font-size:17px}
-    .clock,.stat .n{font-size:20px}
-    .it{font-size:17px}
+    .clock{font-size:20px;padding-left:10px}
+    .stat{padding:0 10px}
+    main{padding:12px;grid-template-columns:1fr}
+    .it{font-size:20px}
   }
 </style>
 </head>
@@ -116,38 +112,27 @@
   </svg>
   <div class="ttl">주방 조리 현황<small>KITCHEN DISPLAY</small></div>
   <div class="spacer"></div>
-  <div class="stat wait"><div class="n" id="nWait">0</div><div class="l">조리 대기</div></div>
-  <div class="stat cook"><div class="n" id="nCook">0</div><div class="l">조리 중</div></div>
+  <div class="stat"><div class="n" id="nCook">0</div><div class="l">조리할 주문</div></div>
+  <div class="stat done"><div class="n" id="nDone">0</div><div class="l">오늘 완료</div></div>
   <div>
     <div class="clock" id="clock">--:--</div>
     <div class="conn" id="conn">연결 중…</div>
   </div>
 </header>
 
-<main>
-  <section>
-    <div class="sec-head">
-      <span class="dot" style="background:#0b4da2"></span>
-      <b>조리 대기</b><span class="cnt" id="cWait">0</span>
-    </div>
-    <div class="cards" id="listNew"></div>
-  </section>
-  <section>
-    <div class="sec-head">
-      <span class="dot" style="background:#c2410c"></span>
-      <b>조리 중</b><span class="cnt" id="cCook">0</span>
-    </div>
-    <div class="cards" id="listCook"></div>
-  </section>
-</main>
+<main id="list"></main>
+
+<footer id="foot" style="display:none">
+  <span class="lbl">방금 완료</span>
+  <div id="undoBox" style="display:flex;gap:8px"></div>
+</footer>
 
 <div class="toast" id="toast"></div>
 
 <div class="setup" id="setup">
-  <div class="box">
+  <div>
     <h2>주방 화면 권한이 필요해요</h2>
-    <p>아래 주방 기기 번호를 Claude에게 알려주시면<br>데이터베이스 규칙에 등록해 드립니다.<br>
-       한 번만 하면 이 기기에서는 계속 열립니다.</p>
+    <p style="color:#6b7684">아래 번호를 알려주시면 등록해 드립니다.</p>
     <div class="uid" id="uidBox">확인 중…</div>
   </div>
 </div>
@@ -169,8 +154,10 @@ const firebaseConfig = {
   appId: "1:625669561757:web:5e7fbaf2b77fd9170d2374"
 };
 
-/** 이 분을 넘기면 카드가 빨갛게 — 늦은 주문 눈에 띄게 */
+/** 이 분을 넘기면 카드가 빨갛게 */
 const LATE_MIN = 15;
+/** 되돌리기 버튼을 남겨두는 개수 */
+const UNDO_KEEP = 4;
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -178,10 +165,10 @@ const auth = getAuth(app);
 
 const $ = id => document.getElementById(id);
 let orders = [];
-const seen = new Set();      // 이미 본 주문 — 새로 뜰 때만 소리
+let recent = [];            // 방금 완료 처리한 주문 (되돌리기용)
+const seen = new Set();
 let firstLoad = true;
 
-/* ── 시계 ── */
 function tickClock() {
   const d = new Date();
   $("clock").textContent =
@@ -191,16 +178,10 @@ tickClock();
 setInterval(tickClock, 10000);
 setInterval(render, 20000);   // 경과 시간 갱신
 
-/* ── 로그인 ── */
 signInAnonymously(auth).catch(e => console.error(e));
 onAuthStateChanged(auth, user => {
   if (!user) return;
   $("uidBox").textContent = user.uid;
-  watch();
-});
-
-/* ── 주문 구독 ── */
-function watch() {
   onValue(ref(db, "orders"), snap => {
     $("conn").textContent = "실시간 연결됨";
     $("setup").classList.remove("on");
@@ -213,77 +194,92 @@ function watch() {
     $("conn").textContent = "권한 없음";
     $("setup").classList.add("on");
   });
-}
+});
 
-/* ── 그리기 ── */
+/** 주방이 만들어야 하는 주문 — 입금 확인됐고 아직 안 나간 것 */
+function toCook(o) { return o.status === "PAID" || o.status === "COOKING"; }
+
 function render() {
-  const mk = s => orders.filter(o => o.status === s)
-                        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const news = mk("PAID");
-  const cooks = mk("COOKING");
+  const list = orders.filter(toCook).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const done = orders.filter(o => o.status === "SERVED").length;
 
-  $("nWait").textContent = news.length;
-  $("nCook").textContent = cooks.length;
-  $("cWait").textContent = news.length;
-  $("cCook").textContent = cooks.length;
+  $("nCook").textContent = list.length;
+  $("nDone").textContent = done;
 
-  paint($("listNew"), news, false);
-  paint($("listCook"), cooks, true);
-
-  // 새 주문이 뜨면 소리로 알린다
-  if (!firstLoad) {
-    for (const o of news) {
-      if (!seen.has(o.id)) { beep(); break; }
-    }
-  }
-  news.forEach(o => seen.add(o.id));
-}
-
-function paint(box, list, cooking) {
   if (!list.length) {
-    box.innerHTML = `<div class="empty">${cooking ? "조리 중인 주문이 없습니다" : "새 주문을 기다리는 중"}</div>`;
-    return;
-  }
-  box.innerHTML = list.map(o => {
-    const min = Math.floor((Date.now() - (o.createdAt || Date.now())) / 60000);
-    const late = min >= LATE_MIN;
-    const items = (o.items || []).map(i =>
-      `<div class="it"><span class="q">${i.qty}</span><span>${i.name}</span></div>`).join("");
-    return `<div class="card ${cooking ? "cooking" : ""} ${late ? "late" : ""}" data-id="${o.id}">
-      <div class="c-top">
-        <div class="table">${o.tableNo}번</div>
-        <div>
-          <div class="who">${o.depositorName || "-"}</div>
-          <div class="no">주문번호 ${String(o.id).slice(-6).toUpperCase()}</div>
+    $("list").innerHTML =
+      `<div class="empty">조리할 주문이 없습니다<br>
+        <span style="font-size:14px">새 주문이 들어오면 소리로 알려드려요</span></div>`;
+  } else {
+    $("list").innerHTML = list.map(o => {
+      const min = Math.floor((Date.now() - (o.createdAt || Date.now())) / 60000);
+      const late = min >= LATE_MIN;
+      const fresh = !seen.has(o.id) && !firstLoad;
+      const items = (o.items || []).map(i =>
+        `<div class="it"><span class="q">${i.qty}</span><span>${i.name}</span></div>`).join("");
+      return `<div class="card ${late ? "late" : ""} ${fresh ? "fresh" : ""}" data-id="${o.id}">
+        <div class="c-top">
+          <div class="table">${o.tableNo}번</div>
+          <div>
+            <div class="who">${o.depositorName || "-"}</div>
+            <div class="no">주문번호 ${String(o.id).slice(-6).toUpperCase()}</div>
+          </div>
+          <div class="elapsed"><div class="m">${min}</div><div class="s">분 경과</div></div>
         </div>
-        <div class="elapsed"><div class="m">${min}</div><div class="s">분 경과</div></div>
-      </div>
-      <div class="items">${items}</div>
-      <button class="act ${cooking ? "" : "start"}" data-act="${cooking ? "SERVED" : "COOKING"}">
-        ${cooking ? "전달 완료" : "조리 시작"}
-      </button>
-    </div>`;
-  }).join("");
+        <div class="items">${items}</div>
+        <div class="act"><button>완료</button></div>
+      </div>`;
+    }).join("");
+  }
 
-  box.onclick = e => {
-    const btn = e.target.closest("button[data-act]");
-    if (!btn) return;
-    const card = btn.closest(".card");
-    setStatus(card.dataset.id, btn.dataset.act);
-  };
+  if (!firstLoad && list.some(o => !seen.has(o.id))) beep();
+  list.forEach(o => seen.add(o.id));
+
+  renderUndo();
 }
 
-async function setStatus(id, status) {
-  const patch = { status };
-  if (status === "SERVED") patch.servedAt = Date.now();
+$("list").onclick = e => {
+  const btn = e.target.closest(".act button");
+  if (!btn) return;
+  const id = btn.closest(".card").dataset.id;
+  finish(id, orders.find(x => x.id === id));
+};
+
+async function finish(id, o) {
   try {
-    await update(ref(db, "orders/" + id), patch);
-    toast(status === "SERVED" ? "전달 완료" : "조리 시작");
+    await update(ref(db, "orders/" + id), { status: "SERVED", servedAt: Date.now() });
+    recent.unshift({ id, table: o ? o.tableNo : "?", prev: o ? o.status : "PAID" });
+    recent = recent.slice(0, UNDO_KEEP);
+    seen.delete(id);
+    toast((o ? o.tableNo + "번 " : "") + "완료");
+    renderUndo();
   } catch (e) {
     console.error(e);
     toast("바꾸지 못했어요 — 권한을 확인해 주세요");
   }
 }
+
+function renderUndo() {
+  if (!recent.length) { $("foot").style.display = "none"; return; }
+  $("foot").style.display = "flex";
+  $("undoBox").innerHTML = recent.map(r =>
+    `<span class="undo"><b>${r.table}번</b>
+      <button data-undo="${r.id}" data-prev="${r.prev}">되돌리기</button></span>`).join("");
+}
+
+$("undoBox").onclick = async e => {
+  const b = e.target.closest("button[data-undo]");
+  if (!b) return;
+  const id = b.dataset.undo;
+  try {
+    await update(ref(db, "orders/" + id), { status: b.dataset.prev || "PAID", servedAt: null });
+    recent = recent.filter(r => r.id !== id);
+    toast("되돌렸습니다");
+    renderUndo();
+  } catch (err) {
+    toast("되돌리지 못했어요");
+  }
+};
 
 function toast(msg) {
   const t = $("toast");
@@ -292,7 +288,6 @@ function toast(msg) {
   setTimeout(() => t.classList.remove("on"), 1400);
 }
 
-/* 새 주문 알림음 */
 function beep() {
   try {
     const ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -308,7 +303,6 @@ function beep() {
   } catch (e) {}
 }
 
-// 화면이 꺼지지 않게 (지원하는 기기에서만)
 if ("wakeLock" in navigator) {
   const keep = () => navigator.wakeLock.request("screen").catch(() => {});
   keep();
