@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>주문하기</title>
+<style>
+  :root{
+    --bg:#ffffff; --sub:#f6f7f9; --line:#ececf0;
+    --text:#17171c; --muted:#8b8b95; --accent:#2563eb; --accent-weak:#eef3ff;
+    --ok:#16a34a; --warn:#d97706;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  button{font-family:inherit}
+
+  .top{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line)}
+  .top-in{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}
+  .shop{font-size:17px;font-weight:800;letter-spacing:-.3px}
+  .table-badge{background:var(--accent-weak);color:var(--accent);font-size:13px;font-weight:700;
+               padding:6px 11px;border-radius:999px}
+  .tabs{display:flex;gap:4px;overflow-x:auto;padding:0 12px 2px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;border:0;background:none;color:var(--muted);font-size:15px;font-weight:600;
+       padding:10px 12px 12px;position:relative}
+  .tab.on{color:var(--text);font-weight:800}
+  .tab.on::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2.5px;
+                 background:var(--text);border-radius:2px}
+
+  main{padding-bottom:110px}
+  .cat-title{font-size:18px;font-weight:800;padding:22px 16px 8px}
+  .item{display:flex;gap:14px;padding:14px 16px;border:0;border-bottom:1px solid var(--line);
+        align-items:center;width:100%;text-align:left;background:none}
+  .item:active{background:var(--sub)}
+  .item .info{flex:1;min-width:0}
+  .item .nm{font-size:16px;font-weight:700;letter-spacing:-.2px}
+  .item .ds{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.45}
+  .item .pr{font-size:15px;font-weight:800;margin-top:8px}
+  .thumb-wrap{position:relative;flex:0 0 auto}
+  .thumb{width:84px;height:84px;border-radius:12px;overflow:hidden;background:var(--sub)}
+  .thumb svg{display:block;width:100%;height:100%}
+  .badge-qty{position:absolute;top:-6px;right:-6px;background:var(--accent);color:#fff;font-size:12px;
+             font-weight:800;min-width:20px;height:20px;border-radius:999px;display:grid;
+             place-items:center;padding:0 5px}
+  .soldout{position:absolute;inset:0;background:rgba(255,255,255,.75);display:grid;place-items:center;
+           font-size:13px;font-weight:800;color:var(--muted);border-radius:12px}
+
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--bg);
+       border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .cta{width:100%;height:54px;border:0;border-radius:12px;background:var(--accent);color:#fff;
+       font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px}
+  .cta:disabled{background:#d7d9df}
+  .cta .cnt{background:rgba(255,255,255,.25);min-width:22px;height:22px;border-radius:999px;
+            display:grid;place-items:center;font-size:13px;padding:0 6px}
+
+  .dim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;opacity:0;pointer-events:none;
+       transition:opacity .2s}
+  .dim.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--bg);
+         border-radius:18px 18px 0 0;transform:translateY(100%);
+         transition:transform .26s cubic-bezier(.22,1,.36,1);max-height:88vh;overflow:auto;
+         padding-bottom:env(safe-area-inset-bottom)}
+  .sheet.on{transform:translateY(0)}
+  .grab{width:38px;height:4px;border-radius:99px;background:#dcdce3;margin:10px auto 2px}
+  .sheet-pad{padding:8px 16px 16px}
+  .hero{width:100%;height:190px;border-radius:14px;overflow:hidden;background:var(--sub)}
+  .hero svg{width:100%;height:100%;display:block}
+  .sheet h3{font-size:20px;font-weight:800;margin:16px 0 6px}
+  .ds2{font-size:14px;color:var(--muted);line-height:1.5}
+  .stepper{display:flex;align-items:center;justify-content:space-between;margin:20px 0 4px}
+  .stepper .lbl{font-size:15px;font-weight:700}
+  .qtybox{display:flex;align-items:center;gap:8px}
+  .qtybox button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);
+                 background:var(--bg);font-size:20px;line-height:1;color:var(--text)}
+  .qtybox button:disabled{color:#c9c9d1}
+  .qtybox span{min-width:28px;text-align:center;font-size:17px;font-weight:800;
+               font-variant-numeric:tabular-nums}
+
+  .cart-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+  .cart-row .t{flex:1;min-width:0}
+  .nm2{font-size:15px;font-weight:700}
+  .pr2{font-size:13px;color:var(--muted);margin-top:3px}
+  .sum{display:flex;justify-content:space-between;align-items:baseline;padding:18px 0 4px}
+  .sum b{font-size:22px;font-weight:800}
+  .fld{margin-top:18px}
+  .fld label{display:block;font-size:14px;font-weight:700;margin-bottom:8px}
+  .fld input{width:100%;height:50px;padding:0 14px;border-radius:12px;border:1px solid var(--line);
+             background:var(--sub);font-size:16px;color:var(--text)}
+  .note{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .note b{color:var(--accent)}
+
+  .page{display:none;padding:0 16px 40px}
+  .page.on{display:block}
+  .phead{padding:26px 0 6px;font-size:24px;font-weight:800;letter-spacing:-.4px}
+  .psub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .card{border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:12px}
+  .k{font-size:13px;color:var(--muted)}
+  .v{font-size:19px;font-weight:800;margin-top:6px;word-break:break-all}
+  .v.big{font-size:26px}
+  .v.accent{color:var(--accent)}
+  .copy{margin-top:12px;height:42px;padding:0 14px;border-radius:10px;border:1px solid var(--line);
+        background:var(--sub);font-size:14px;font-weight:700;color:var(--text)}
+  .divide{height:1px;background:var(--line);margin:18px -18px}
+  .wait{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--warn)}
+  .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid #f1d9b0;
+        border-top-color:var(--warn);animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .lines{font-size:14px;line-height:1.9}
+  .lines .r{display:flex;justify-content:space-between}
+  .lines .r span:last-child{color:var(--muted)}
+
+  .done-wrap{text-align:center;padding:54px 0 10px}
+  .check{width:92px;height:92px;margin:0 auto 22px;border-radius:50%;background:#e8f8ee;
+         display:grid;place-items:center;animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+  .check svg{width:46px;height:46px}
+  .done-ttl{font-size:26px;font-weight:800;color:var(--ok);letter-spacing:-.5px}
+  .done-sub{font-size:15px;color:var(--muted);margin-top:10px;line-height:1.6}
+  .ordno{display:inline-block;margin-top:18px;background:var(--sub);border-radius:999px;
+         padding:8px 16px;font-size:14px;font-weight:700;color:var(--muted)}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<!-- ───── 메뉴 ───── -->
+<div id="menuPage">
+  <header class="top">
+    <div class="top-in">
+      <div class="shop">모바일공학전공 주점</div>
+      <div class="table-badge" id="tableBadge">테이블 확인 중</div>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </header>
+  <main id="list"></main>
+  <div class="bar">
+    <button class="cta" id="cartBtn" disabled>
+      <span id="cartLabel">메뉴를 담아주세요</span>
+      <span class="cnt hidden" id="cartCount">0</span>
+    </button>
+  </div>
+</div>
+
+<!-- ───── 입금 안내 ───── -->
+<div class="page" id="payPage">
+  <div class="phead">입금해 주세요</div>
+  <div class="psub" id="payTable"></div>
+
+  <div class="card">
+    <div class="k">입금자명 — 꼭 이대로 보내주세요</div>
+    <div class="v big accent" id="payName">-</div>
+    <button class="copy" id="copyName">입금자명 복사</button>
+    <div class="note">이름 뒤 숫자는 <b>테이블 번호</b>예요. 이대로 보내야 자동으로 확인됩니다.</div>
+    <div class="divide"></div>
+    <div class="k">입금 계좌</div>
+    <div class="v" id="payAccount">-</div>
+    <button class="copy" id="copyAccount">계좌번호 복사</button>
+    <div class="divide"></div>
+    <div class="k">보내실 금액</div>
+    <div class="v big" id="payAmount">-</div>
+  </div>
+
+  <div class="card">
+    <div class="wait"><span class="spin"></span><span id="waitText">입금을 기다리는 중…</span></div>
+    <div class="note" id="waitNote">확인되면 소리와 알림으로 알려드려요. <b>이 화면을 닫지 말아 주세요.</b></div>
+  </div>
+
+  <div class="card">
+    <div class="k" style="margin-bottom:10px">주문 내역</div>
+    <div class="lines" id="payLines"></div>
+  </div>
+</div>
+
+<!-- ───── 입금 확인 완료 ───── -->
+<div class="page" id="donePage">
+  <div class="done-wrap">
+    <div class="check">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.2 5.2L20 7"/></svg>
+    </div>
+    <div class="done-ttl">입금 확인 완료</div>
+    <div class="done-sub" id="doneSub"></div>
+    <div class="ordno" id="doneNo">주문번호 —</div>
+  </div>
+  <div class="card">
+    <div class="k" style="margin-bottom:10px">주문 내역</div>
+    <div class="lines" id="doneLines"></div>
+  </div>
+</div>
+
+<!-- ───── 시트 ───── -->
+<div class="dim" id="dim"></div>
+
+<div class="sheet" id="itemSheet">
+  <div class="grab"></div>
+  <div class="sheet-pad">
+    <div class="hero" id="sheetArt"></div>
+    <h3 id="sheetName">-</h3>
+    <div class="ds2" id="sheetDesc"></div>
+    <div class="stepper">
+      <span class="lbl">수량</span>
+      <span class="qtybox"><button id="sMinus">−</button><span id="sQty">1</span><button id="sPlus">+</button></span>
+    </div>
+    <button class="cta" id="sAdd" style="margin-top:14px">담기</button>
+  </div>
+</div>
+
+<div class="sheet" id="cartSheet">
+  <div class="grab"></div>
+  <div class="sheet-pad">
+    <h3 style="margin-top:6px">장바구니</h3>
+    <div id="cartList"></div>
+    <div class="sum"><span>합계</span><b id="cartTotal">0원</b></div>
+    <div class="fld">
+      <label for="nameInput">입금자 이름</label>
+      <input type="text" id="nameInput" placeholder="예) 홍길동" maxlength="10" autocomplete="name">
+      <div class="note" id="nameNote">이름을 입력하면 보내실 입금자명을 알려드려요.</div>
+    </div>
+    <button class="cta" id="submitBtn" style="margin-top:18px" disabled>주문하고 입금 안내 받기</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, get, child }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDRtSHfavnWGNAgLl9Agxjql9dc74cbpKg",
+  authDomain: "mobile-jujeom.firebaseapp.com",
+  databaseURL: "https://mobile-jujeom-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mobile-jujeom",
+  storageBucket: "mobile-jujeom.firebasestorage.app",
+  messagingSenderId: "625669561757",
+  appId: "1:625669561757:web:5e7fbaf2b77fd9170d2374"
+};
+const ACCOUNT_BANK = "국민은행";
+const ACCOUNT_NO   = "94030201148249";
+const ACCOUNT_NAME = "노경민";
+
+/* 사진 대신 직접 그린 일러스트 */
+const ART = {
+  noodle:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff4e6"/>
+    <ellipse cx="60" cy="74" rx="38" ry="25" fill="#e8d3b4"/><ellipse cx="60" cy="68" rx="36" ry="22" fill="#fffaf2"/>
+    <path d="M32 66q14-14 28-6t28-4" stroke="#f0c674" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M34 74q14-12 26-4t26-6" stroke="#f7d894" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="48" cy="62" r="6" fill="#d97757"/><circle cx="74" cy="65" r="5" fill="#d97757"/></svg>`,
+  egg:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff8e7"/>
+    <rect x="22" y="48" width="76" height="30" rx="8" fill="#f7d774" stroke="#e8c04a" stroke-width="2"/>
+    <path d="M42 48v30M62 48v30M82 48v30" stroke="#e8c04a" stroke-width="2"/>
+    <circle cx="33" cy="63" r="4" fill="#8fbf6a"/><circle cx="53" cy="63" r="4" fill="#d97757"/>
+    <circle cx="73" cy="63" r="4" fill="#8fbf6a"/><circle cx="91" cy="63" r="4" fill="#d97757"/>
+    <rect x="16" y="80" width="88" height="7" rx="3.5" fill="#dfe3ea"/></svg>`,
+  fruit:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fdeef2"/>
+    <path d="M28 52h64l-7 34a10 10 0 0 1-10 8H45a10 10 0 0 1-10-8z" fill="#ffd3e0"/>
+    <path d="M28 52h64l-2 10H30z" fill="#fff"/><circle cx="48" cy="70" r="7" fill="#ff8fab"/>
+    <circle cx="68" cy="66" r="6" fill="#ffd166"/><circle cx="60" cy="80" r="6" fill="#8fbf6a"/>
+    <circle cx="76" cy="79" r="5" fill="#ff8fab"/><rect x="24" y="44" width="72" height="8" rx="4" fill="#fff"/></svg>`,
+  dry:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fbf3e8"/>
+    <ellipse cx="60" cy="76" rx="36" ry="15" fill="#efe0cb"/>
+    <path d="M40 72c4-16 12-24 20-24s16 8 20 24" fill="#e9b872"/>
+    <path d="M46 70c3-11 8-17 14-17s11 6 14 17" fill="#f3cf9b"/>
+    <circle cx="52" cy="76" r="4" fill="#c98b4b"/><circle cx="68" cy="78" r="4" fill="#c98b4b"/></svg>`,
+  fries:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff3ea"/>
+    <path d="M44 42h6v34h-6zM54 36h6v40h-6zM64 40h6v36h-6zM74 46h6v30h-6z" fill="#f5c65c"/>
+    <path d="M38 66h44l-5 26a8 8 0 0 1-8 7H51a8 8 0 0 1-8-7z" fill="#e2593f"/>
+    <path d="M38 66h44l-1.5 8h-41z" fill="#fff" opacity=".35"/></svg>`,
+  soju:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#eaf6f0"/>
+    <path d="M54 26h12v16l8 12v40a6 6 0 0 1-6 6H52a6 6 0 0 1-6-6V54l8-12z" fill="#9ed7bd"/>
+    <path d="M54 26h12v16l8 12v10H46V54l8-12z" fill="#c4e9d9"/>
+    <rect x="52" y="22" width="16" height="8" rx="2" fill="#4f9f7f"/>
+    <rect x="49" y="70" width="22" height="20" rx="3" fill="#fff" opacity=".85"/></svg>`,
+  beer:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff8e1"/>
+    <path d="M40 44h34v46a8 8 0 0 1-8 8H48a8 8 0 0 1-8-8z" fill="#f7c948"/>
+    <path d="M40 44h34v12H40z" fill="#fdf0c8"/>
+    <path d="M74 54h8a8 8 0 0 1 0 16h-8" fill="none" stroke="#e0a800" stroke-width="4"/>
+    <ellipse cx="57" cy="42" rx="18" ry="9" fill="#fffdf6"/>
+    <circle cx="48" cy="38" r="6" fill="#fff"/><circle cx="66" cy="38" r="5" fill="#fff"/></svg>`,
+  makgeolli:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#f4f1ea"/>
+    <path d="M44 34h32v54a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#f2efe6"/>
+    <path d="M44 56h32v32a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#fbfaf6"/>
+    <rect x="46" y="44" width="28" height="14" rx="2" fill="#d9e8c8"/>
+    <rect x="50" y="26" width="20" height="10" rx="3" fill="#8fbf6a"/></svg>`,
+  cocktailBlue:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#e9f1ff"/>
+    <path d="M34 36h52L64 64v26h10v6H46v-6h10V64z" fill="#bcd6ff"/>
+    <path d="M40 42h40L64 62h-2z" fill="#4f8ef7"/><circle cx="58" cy="50" r="3" fill="#fff" opacity=".8"/>
+    <path d="M78 30l-8 12" stroke="#f7a8c4" stroke-width="3" stroke-linecap="round"/></svg>`,
+  cocktailPink:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fdecf3"/>
+    <path d="M34 36h52L64 64v26h10v6H46v-6h10V64z" fill="#ffd0e2"/>
+    <path d="M40 42h40L64 62h-2z" fill="#f2668f"/><circle cx="58" cy="50" r="3" fill="#fff" opacity=".85"/>
+    <path d="M78 30l-8 12" stroke="#8fbf6a" stroke-width="3" stroke-linecap="round"/></svg>`,
+  cola:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#f2eceb"/>
+    <path d="M44 34h32v54a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#5c3a32"/>
+    <path d="M44 34h32v14H44z" fill="#c7b2ac"/>
+    <rect x="50" y="56" width="20" height="22" rx="3" fill="#fff" opacity=".85"/></svg>`,
+  cider:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#eafaf4"/>
+    <path d="M44 34h32v54a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#bfead9"/>
+    <path d="M44 34h32v14H44z" fill="#e6f7ef"/><circle cx="54" cy="70" r="3" fill="#fff"/>
+    <circle cx="66" cy="78" r="2.5" fill="#fff"/><circle cx="60" cy="62" r="2" fill="#fff"/></svg>`
+};
+
+/* 확인용이라 가격은 전부 1원 */
+const DEFAULT_MENU = [
+  { cat:"추천", name:"사복주",       desc:"사이다 + 복분자주. 사회복지학과 시그니처", price:1, art:"cocktailPink" },
+  { cat:"추천", name:"청춘 블루",     desc:"파란 소주 칵테일. 우리 과 시그니처",      price:1, art:"cocktailBlue" },
+  { cat:"안주", name:"골뱅이소면",     desc:"새콤달콤 골뱅이무침에 소면 사리",        price:1, art:"noodle" },
+  { cat:"안주", name:"계란말이",       desc:"두툼하게 말아낸 계란말이",              price:1, art:"egg" },
+  { cat:"안주", name:"과일화채",       desc:"시원한 사이다에 과일 듬뿍",             price:1, art:"fruit" },
+  { cat:"안주", name:"마른안주 모둠",   desc:"쥐포, 땅콩, 먹태",                     price:1, art:"dry" },
+  { cat:"안주", name:"감자튀김",       desc:"케첩과 함께",                          price:1, art:"fries" },
+  { cat:"주류", name:"소주",          desc:"참이슬 / 처음처럼",                     price:1, art:"soju" },
+  { cat:"주류", name:"맥주",          desc:"카스 / 테라",                          price:1, art:"beer" },
+  { cat:"주류", name:"막걸리",         desc:"생막걸리",                             price:1, art:"makgeolli" },
+  { cat:"음료", name:"콜라",          desc:"500ml",                                price:1, art:"cola" },
+  { cat:"음료", name:"사이다",         desc:"500ml",                                price:1, art:"cider" }
+];
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const params = new URLSearchParams(location.search);
+const tableNo = parseInt(params.get("t") || "0", 10);
+let menu = DEFAULT_MENU;
+const cart = new Map();
+let sheetIdx = -1, sheetQty = 1;
+let currentOrder = null, currentOrderId = null, finished = false;
+
+const $ = id => document.getElementById(id);
+const won = n => n.toLocaleString("ko-KR") + "원";
+const artOf = m => ART[m.art] || ART.dry;
+
+$("tableBadge").textContent = tableNo > 0 ? `${tableNo}번 테이블` : "번호 없음";
+
+async function loadMenu() {
+  try {
+    const snap = await get(child(ref(db), "menu"));
+    if (snap.exists()) {
+      const v = snap.val();
+      const list = (Array.isArray(v) ? v : Object.values(v)).filter(Boolean);
+      if (list.length) menu = list;
+    }
+  } catch (e) { console.warn("기본 메뉴 사용", e); }
+  render();
+}
+
+function render() {
+  const cs = [...new Set(menu.map(m => m.cat || "메뉴"))];
+  $("tabs").innerHTML = cs.map((c, i) =>
+    `<button class="tab${i === 0 ? " on" : ""}" data-cat="${c}">${c}</button>`).join("");
+  $("list").innerHTML = cs.map(c => `<section data-sec="${c}">
+      <div class="cat-title">${c}</div>
+      ${menu.map((m, i) => m.cat === c ? itemHtml(m, i) : "").join("")}
+    </section>`).join("");
+
+  $("tabs").onclick = e => {
+    const b = e.target.closest(".tab"); if (!b) return;
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
+    const sec = document.querySelector(`[data-sec="${b.dataset.cat}"]`);
+    window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - 104, behavior:"smooth" });
+  };
+  $("list").onclick = e => {
+    const b = e.target.closest(".item");
+    if (b && !b.dataset.soldout) openItem(+b.dataset.i);
+  };
+  refreshBar();
+}
+
+function itemHtml(m, i) {
+  const q = cart.get(i) || 0;
+  return `<button class="item" data-i="${i}"${m.soldOut ? ' data-soldout="1"' : ""}>
+    <div class="info">
+      <div class="nm">${m.name}</div>
+      ${m.desc ? `<div class="ds">${m.desc}</div>` : ""}
+      <div class="pr">${won(m.price)}</div>
+    </div>
+    <div class="thumb-wrap">
+      <div class="thumb">${artOf(m)}</div>
+      ${q ? `<span class="badge-qty">${q}</span>` : ""}
+      ${m.soldOut ? `<div class="soldout">품절</div>` : ""}
+    </div></button>`;
+}
+
+function repaintBadges() {
+  document.querySelectorAll(".item").forEach(el => {
+    const q = cart.get(+el.dataset.i) || 0;
+    const w = el.querySelector(".thumb-wrap");
+    let b = w.querySelector(".badge-qty");
+    if (q) { if (!b) { b = document.createElement("span"); b.className = "badge-qty"; w.appendChild(b); } b.textContent = q; }
+    else if (b) b.remove();
+  });
+}
+
+function openItem(i) {
+  sheetIdx = i; sheetQty = cart.get(i) || 1;
+  const m = menu[i];
+  $("sheetArt").innerHTML = artOf(m);
+  $("sheetName").textContent = m.name;
+  $("sheetDesc").textContent = m.desc || "";
+  setSheetQty(sheetQty);
+  openSheet("itemSheet");
+}
+$("sPlus").onclick = () => setSheetQty(sheetQty + 1);
+$("sMinus").onclick = () => setSheetQty(sheetQty - 1);
+function setSheetQty(q) {
+  sheetQty = Math.max(1, Math.min(99, q));
+  $("sQty").textContent = sheetQty;
+  $("sMinus").disabled = sheetQty <= 1;
+  $("sAdd").textContent = `${won(menu[sheetIdx].price * sheetQty)} 담기`;
+}
+$("sAdd").onclick = () => { cart.set(sheetIdx, sheetQty); closeSheets(); repaintBadges(); refreshBar(); };
+
+function openSheet(id) { $("dim").classList.add("on"); $(id).classList.add("on"); }
+function closeSheets() {
+  $("dim").classList.remove("on");
+  $("itemSheet").classList.remove("on");
+  $("cartSheet").classList.remove("on");
+}
+$("dim").onclick = closeSheets;
+
+function total() { let t = 0; cart.forEach((q, i) => t += menu[i].price * q); return t; }
+function count() { let c = 0; cart.forEach(q => c += q); return c; }
+
+function refreshBar() {
+  const c = count();
+  $("cartBtn").disabled = c === 0;
+  $("cartCount").classList.toggle("hidden", c === 0);
+  $("cartCount").textContent = c;
+  $("cartLabel").textContent = c === 0 ? "메뉴를 담아주세요" : `${won(total())} · 장바구니 보기`;
+}
+$("cartBtn").onclick = () => { renderCart(); openSheet("cartSheet"); };
+
+function renderCart() {
+  const rows = [];
+  cart.forEach((q, i) => {
+    const m = menu[i];
+    rows.push(`<div class="cart-row" data-i="${i}">
+      <div class="thumb" style="width:52px;height:52px">${artOf(m)}</div>
+      <div class="t"><div class="nm2">${m.name}</div><div class="pr2">${won(m.price * q)}</div></div>
+      <span class="qtybox"><button data-d="-1">−</button><span>${q}</span><button data-d="1">+</button></span>
+    </div>`);
+  });
+  $("cartList").innerHTML = rows.join("");
+  $("cartTotal").textContent = won(total());
+  $("cartList").onclick = e => {
+    const b = e.target.closest("button[data-d]"); if (!b) return;
+    const i = +b.closest(".cart-row").dataset.i;
+    const q = (cart.get(i) || 0) + (+b.dataset.d);
+    q <= 0 ? cart.delete(i) : cart.set(i, q);
+    renderCart(); repaintBadges(); refreshBar();
+    if (count() === 0) closeSheets();
+  };
+  checkName();
+}
+
+function depositorName() {
+  const raw = $("nameInput").value.trim().replace(/\s+/g, "");
+  return raw ? raw + tableNo : "";
+}
+function checkName() {
+  const n = depositorName();
+  $("nameNote").innerHTML = n ? `입금자명을 <b>${n}</b> 으로 보내주세요.`
+                              : "이름을 입력하면 보내실 입금자명을 알려드려요.";
+  $("submitBtn").disabled = !(total() > 0 && n.length >= 2 && tableNo > 0);
+}
+$("nameInput").addEventListener("input", checkName);
+
+$("submitBtn").onclick = async () => {
+  const btn = $("submitBtn");
+  btn.disabled = true; btn.textContent = "보내는 중…";
+
+  try {
+    if ("Notification" in window && Notification.permission === "default") await Notification.requestPermission();
+  } catch (e) {}
+
+  const items = [];
+  cart.forEach((q, i) => items.push({ name: menu[i].name, qty: q, price: menu[i].price }));
+  const order = {
+    tableNo, customerName: $("nameInput").value.trim(), depositorName: depositorName(),
+    amount: total(), items, status: "WAITING", createdAt: Date.now()
+  };
+
+  try {
+    const r = push(ref(db, "orders"));
+    await set(r, order);
+    currentOrder = order; currentOrderId = r.key;
+    try { localStorage.setItem("jujeom_order_id", r.key); } catch (e) {}
+    showPay();
+  } catch (e) {
+    console.error(e);
+    alert("주문을 보내지 못했어요. 와이파이를 확인하고 다시 눌러주세요.");
+    btn.disabled = false; btn.textContent = "주문하고 입금 안내 받기";
+  }
+};
+
+function lineHtml(o) {
+  return o.items.map(i =>
+    `<div class="r"><span>${i.name} × ${i.qty}</span><span>${won(i.price * i.qty)}</span></div>`).join("")
+    + `<div class="r" style="margin-top:6px;font-weight:800"><span>합계</span><span style="color:inherit">${won(o.amount)}</span></div>`;
+}
+
+function showPay() {
+  closeSheets();
+  $("menuPage").classList.add("hidden");
+  $("payPage").classList.add("on");
+  window.scrollTo(0, 0);
+
+  const o = currentOrder;
+  $("payTable").textContent = `${o.tableNo}번 테이블 · 메뉴 ${o.items.reduce((a, b) => a + b.qty, 0)}개`;
+  $("payName").textContent = o.depositorName;
+  $("payAccount").textContent = `${ACCOUNT_BANK} ${ACCOUNT_NO} (예금주 ${ACCOUNT_NAME})`;
+  $("payAmount").textContent = won(o.amount);
+  $("payLines").innerHTML = lineHtml(o);
+  copyBtn($("copyName"), o.depositorName, "입금자명 복사");
+  copyBtn($("copyAccount"), ACCOUNT_NO, "계좌번호 복사");
+
+  setTimeout(() => {
+    if (!finished) $("waitNote").innerHTML =
+      '<b style="color:#d97706">5분이 지났어요.</b> 입금자명이 위와 같은지 확인해 보시고, 그래도 안 되면 직원에게 말씀해 주세요.';
+  }, 5 * 60 * 1000);
+
+  onValue(ref(db, "orders/" + currentOrderId + "/status"), snap => {
+    const s = snap.val();
+    if (s === "PAID" || s === "SERVED") showDone();
+    else if (s === "REVIEW") $("waitText").textContent = "확인 중이에요. 잠시만 기다려 주세요.";
+    else if (s === "CANCELED") $("waitText").textContent = "취소된 주문이에요. 직원에게 문의해 주세요.";
+  });
+}
+
+function copyBtn(btn, text, label) {
+  btn.onclick = async () => {
+    try { await navigator.clipboard.writeText(text); btn.textContent = "복사했어요 ✓"; }
+    catch (e) { btn.textContent = text; }
+    setTimeout(() => btn.textContent = label, 1800);
+  };
+}
+
+function showDone() {
+  if (finished) return;
+  finished = true;
+  $("payPage").classList.remove("on");
+  $("donePage").classList.add("on");
+  window.scrollTo(0, 0);
+
+  const o = currentOrder;
+  $("doneNo").textContent = "주문번호 " + String(currentOrderId || "").slice(-6).toUpperCase();
+  $("doneSub").innerHTML = `${o.tableNo}번 테이블 · ${won(o.amount)}<br>주문이 주방으로 들어갔어요. 잠시만 기다려 주세요.`;
+  $("doneLines").innerHTML = lineHtml(o);
+  document.title = "입금 확인 완료";
+
+  try { navigator.vibrate && navigator.vibrate([200, 100, 200, 100, 400]); } catch (e) {}
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18].forEach((t, i) => {
+      const osc = ac.createOscillator(), g = ac.createGain();
+      osc.connect(g); g.connect(ac.destination);
+      osc.frequency.value = i === 0 ? 880 : 1320;
+      g.gain.setValueAtTime(0.001, ac.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.3, ac.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + t + 0.16);
+      osc.start(ac.currentTime + t); osc.stop(ac.currentTime + t + 0.18);
+    });
+  } catch (e) {}
+  try {
+    if ("Notification" in window && Notification.permission === "granted")
+      new Notification("입금 확인 완료!", { body:`${o.tableNo}번 테이블 · 주문이 주방으로 들어갔어요`, tag:"jujeom-paid" });
+  } catch (e) {}
+}
+
+loadMenu();
+</script>
+</body>
+</html>
