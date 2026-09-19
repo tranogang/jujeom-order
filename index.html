@@ -154,7 +154,7 @@
     <div class="k">입금자명 — 꼭 이대로 보내주세요</div>
     <div class="v big accent" id="payName">-</div>
     <button class="copy" id="copyName">입금자명 복사</button>
-    <div class="note">이름 뒤 숫자는 <b>테이블 번호</b>예요. 이대로 보내야 자동으로 확인됩니다.</div>
+    <div class="note">입력하신 이름 <b>그대로</b> 보내주셔야 자동으로 확인됩니다.</div>
     <div class="divide"></div>
     <div class="k">입금 계좌</div>
     <div class="v" id="payAccount">-</div>
@@ -457,13 +457,13 @@ function renderCart() {
 }
 
 function depositorName() {
-  const raw = $("nameInput").value.trim().replace(/\s+/g, "");
-  return raw ? raw + tableNo : "";
+  // 입금자명은 이름 그대로. 테이블 번호는 주문에만 기록하고 이름에는 안 붙인다.
+  return $("nameInput").value.trim().replace(/\s+/g, "");
 }
 function checkName() {
   const n = depositorName();
   $("nameNote").innerHTML = n ? `입금자명을 <b>${n}</b> 으로 보내주세요.`
-                              : "이름을 입력하면 보내실 입금자명을 알려드려요.";
+                              : "입금할 때 쓸 이름을 그대로 적어주세요.";
   $("submitBtn").disabled = !(total() > 0 && n.length >= 2 && tableNo > 0);
 }
 $("nameInput").addEventListener("input", checkName);
