@@ -34,6 +34,16 @@
          color:var(--txt);padding-left:16px;border-left:1px solid var(--line)}
   .conn{font-size:11px;color:var(--muted);margin-top:3px;text-align:center}
 
+  nav{flex:0 0 auto;display:flex;gap:6px;padding:10px 16px;background:#fff;
+      border-bottom:1px solid var(--line);overflow-x:auto}
+  nav button{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--muted);
+             font-size:14px;font-weight:700;padding:9px 16px;border-radius:999px;
+             display:flex;align-items:center;gap:7px}
+  nav button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  nav button .c{background:rgba(0,0,0,.08);border-radius:999px;min-width:20px;padding:1px 6px;
+                font-size:12px;font-variant-numeric:tabular-nums}
+  nav button.on .c{background:rgba(255,255,255,.25)}
+
   main{flex:1;overflow-y:auto;padding:16px;min-height:0;
        display:grid;gap:14px;align-content:start;
        grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
@@ -42,6 +52,8 @@
 
   .card{background:var(--card);border:1px solid var(--line);border-left:7px solid var(--blue);
         border-radius:14px;padding:16px;display:flex;flex-direction:column}
+  .card.cooking{border-left-color:#c2410c}
+  .card.cooking .table{background:#c2410c}
   .card.late{border-left-color:var(--red);background:#fff5f5}
   .card.fresh{animation:pop .5s ease-out}
   @keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
@@ -63,11 +75,17 @@
          min-width:44px;text-align:center;padding:4px 8px;font-size:20px;font-weight:800;
          color:var(--blue);flex:0 0 auto}
 
-  .act{width:100%;margin-top:auto;padding-top:16px}
-  .act button{width:100%;height:58px;border:0;border-radius:12px;
+  .act{width:100%;margin-top:auto;padding-top:16px;display:flex;gap:8px}
+  .act button{flex:1;height:58px;border:0;border-radius:12px;
               font-size:19px;font-weight:800;color:#fff;background:var(--grass);
               box-shadow:0 3px 0 #14532d}
   .act button:active{transform:translateY(2px);box-shadow:0 1px 0 #14532d}
+  .act button.start{background:#c2410c;box-shadow:0 3px 0 #7c2d12}
+  .act button.start:active{box-shadow:0 1px 0 #7c2d12}
+  .act button.ghost{flex:0 0 auto;width:58px;background:#fff;color:var(--muted);
+                    border:1px solid var(--line);box-shadow:none;font-size:14px}
+  .badge{margin-left:auto;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;
+         background:#fff1e7;color:#c2410c}
 
   .empty{grid-column:1/-1;display:grid;place-items:center;padding:80px 20px;
          color:#9aa7b8;font-size:16px;text-align:center;line-height:1.8}
@@ -120,6 +138,12 @@
   </div>
 </header>
 
+<nav id="tabs">
+  <button data-f="ALL" class="on">전체 <span class="c" id="tAll">0</span></button>
+  <button data-f="PAID">조리 대기 <span class="c" id="tPaid">0</span></button>
+  <button data-f="COOKING">조리 중 <span class="c" id="tCook">0</span></button>
+</nav>
+
 <main id="list"></main>
 
 <footer id="foot" style="display:none">
@@ -166,6 +190,7 @@ const auth = getAuth(app);
 const $ = id => document.getElementById(id);
 let orders = [];
 let recent = [];            // 방금 완료 처리한 주문 (되돌리기용)
+let filter = "ALL";         // ALL / PAID / COOKING
 const seen = new Set();
 let firstLoad = true;
 
@@ -200,24 +225,44 @@ onAuthStateChanged(auth, user => {
 function toCook(o) { return o.status === "PAID" || o.status === "COOKING"; }
 
 function render() {
-  const list = orders.filter(toCook).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const all = orders.filter(toCook).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   const done = orders.filter(o => o.status === "SERVED").length;
 
-  $("nCook").textContent = list.length;
+  const nPaid = all.filter(o => o.status === "PAID").length;
+  const nCooking = all.filter(o => o.status === "COOKING").length;
+  $("tAll").textContent = all.length;
+  $("tPaid").textContent = nPaid;
+  $("tCook").textContent = nCooking;
+
+  const list = filter === "ALL" ? all : all.filter(o => o.status === filter);
+
+  $("nCook").textContent = all.length;
   $("nDone").textContent = done;
 
   if (!list.length) {
+    const msg = filter === "PAID" ? "조리 대기 중인 주문이 없습니다"
+              : filter === "COOKING" ? "조리 중인 주문이 없습니다"
+              : "조리할 주문이 없습니다";
     $("list").innerHTML =
-      `<div class="empty">조리할 주문이 없습니다<br>
+      `<div class="empty">${msg}<br>
         <span style="font-size:14px">새 주문이 들어오면 소리로 알려드려요</span></div>`;
   } else {
     $("list").innerHTML = list.map(o => {
       const min = Math.floor((Date.now() - (o.createdAt || Date.now())) / 60000);
       const late = min >= LATE_MIN;
       const fresh = !seen.has(o.id) && !firstLoad;
+      const cooking = o.status === "COOKING";
       const items = (o.items || []).map(i =>
         `<div class="it"><span class="q">${i.qty}</span><span>${i.name}</span></div>`).join("");
-      return `<div class="card ${late ? "late" : ""} ${fresh ? "fresh" : ""}" data-id="${o.id}">
+
+      // 조리 대기면 [조리 시작] + [바로 완료], 조리 중이면 [전달 완료] + [되돌리기]
+      const act = cooking
+        ? `<button data-to="SERVED">전달 완료</button>
+           <button class="ghost" data-to="PAID" title="조리 대기로">↩</button>`
+        : `<button class="start" data-to="COOKING">조리 시작</button>
+           <button data-to="SERVED">완료</button>`;
+
+      return `<div class="card ${cooking ? "cooking" : ""} ${late ? "late" : ""} ${fresh ? "fresh" : ""}" data-id="${o.id}">
         <div class="c-top">
           <div class="table">${o.tableNo}번</div>
           <div>
@@ -226,8 +271,9 @@ function render() {
           </div>
           <div class="elapsed"><div class="m">${min}</div><div class="s">분 경과</div></div>
         </div>
+        ${cooking ? `<div style="display:flex"><span class="badge">조리 중</span></div>` : ""}
         <div class="items">${items}</div>
-        <div class="act"><button>완료</button></div>
+        <div class="act">${act}</div>
       </div>`;
     }).join("");
   }
@@ -238,21 +284,36 @@ function render() {
   renderUndo();
 }
 
-$("list").onclick = e => {
-  const btn = e.target.closest(".act button");
-  if (!btn) return;
-  const id = btn.closest(".card").dataset.id;
-  finish(id, orders.find(x => x.id === id));
+$("tabs").onclick = e => {
+  const b = e.target.closest("button[data-f]");
+  if (!b) return;
+  filter = b.dataset.f;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  render();
 };
 
-async function finish(id, o) {
+$("list").onclick = e => {
+  const btn = e.target.closest(".act button[data-to]");
+  if (!btn) return;
+  const id = btn.closest(".card").dataset.id;
+  setStatus(id, btn.dataset.to, orders.find(x => x.id === id));
+};
+
+async function setStatus(id, to, o) {
+  const patch = { status: to };
+  if (to === "SERVED") patch.servedAt = Date.now();
   try {
-    await update(ref(db, "orders/" + id), { status: "SERVED", servedAt: Date.now() });
-    recent.unshift({ id, table: o ? o.tableNo : "?", prev: o ? o.status : "PAID" });
-    recent = recent.slice(0, UNDO_KEEP);
-    seen.delete(id);
-    toast((o ? o.tableNo + "번 " : "") + "완료");
-    renderUndo();
+    await update(ref(db, "orders/" + id), patch);
+    const label = to === "SERVED" ? "전달 완료" : to === "COOKING" ? "조리 시작" : "조리 대기로";
+    toast((o ? o.tableNo + "번 " : "") + label);
+
+    // 완료된 것만 되돌리기 목록에 남긴다
+    if (to === "SERVED") {
+      recent.unshift({ id, table: o ? o.tableNo : "?", prev: o ? o.status : "PAID" });
+      recent = recent.slice(0, UNDO_KEEP);
+      seen.delete(id);
+      renderUndo();
+    }
   } catch (e) {
     console.error(e);
     toast("바꾸지 못했어요 — 권한을 확인해 주세요");

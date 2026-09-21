@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>주점 직원 앱 설치</title>
+<style>
+  :root{
+    --accent:#0B4DA2;
+    --accent-weak:#EEF4FC;
+    --line:#E3E8EF;
+    --ink:#101828;
+    --muted:#667085;
+    --bg:#F7F9FC;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",
+                "Malgun Gothic",sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:460px;margin:0 auto;padding:0 18px 56px}
+
+  header{
+    background:#fff;border-bottom:3px solid var(--accent);
+    padding:26px 18px 22px;text-align:center;margin-bottom:18px;
+  }
+  .ball{width:64px;height:64px;margin:0 auto 12px;display:block}
+  h1{font-size:21px;margin:0 0 4px;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:13px;margin:0}
+
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:16px;
+    padding:20px 18px;margin-bottom:14px;
+  }
+
+  .dl{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--accent);color:#fff;text-decoration:none;
+    height:56px;border-radius:14px;font-size:17px;font-weight:800;
+    letter-spacing:-.2px;
+  }
+  .dl:active{opacity:.85}
+  .meta{text-align:center;color:var(--muted);font-size:12px;margin-top:10px}
+
+  h2{font-size:15px;margin:0 0 12px;letter-spacing:-.2px}
+
+  ol{margin:0;padding:0;list-style:none;counter-reset:s}
+  ol li{
+    counter-increment:s;position:relative;
+    padding:0 0 16px 38px;font-size:14px;
+  }
+  ol li:last-child{padding-bottom:0}
+  ol li::before{
+    content:counter(s);position:absolute;left:0;top:0;
+    width:25px;height:25px;border-radius:50%;
+    background:var(--accent-weak);color:var(--accent);
+    font-size:13px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+  }
+  ol li b{font-weight:700}
+  ol li .hint{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+
+  .note{
+    background:var(--accent-weak);border:1px solid #D4E2F5;
+    border-radius:14px;padding:15px 16px;font-size:13px;color:#1D3A63;
+  }
+  .note b{color:var(--accent)}
+  .note .k{
+    display:inline-block;background:#fff;border:1px solid #D4E2F5;
+    border-radius:6px;padding:1px 7px;font-weight:700;font-size:12.5px;
+  }
+
+  .warn{color:var(--muted);font-size:12.5px;margin-top:18px;text-align:center}
+
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --accent:#5B9BEC;--accent-weak:#18253A;--line:#2A3446;
+      --ink:#E8EDF5;--muted:#93A1B8;--bg:#0E1420;
+    }
+    :root:not([data-theme="light"]) header,
+    :root:not([data-theme="light"]) .card{background:#141C2A}
+    :root:not([data-theme="light"]) .dl{color:#0B1220}
+    :root:not([data-theme="light"]) .note{background:#18253A;border-color:#2A3A56;color:#C6D6EC}
+    :root:not([data-theme="light"]) .note .k{background:#101827;border-color:#2A3A56}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="ball" viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="32" r="29" fill="#fff" stroke="#C9D6E6" stroke-width="2"/>
+    <path d="M17 9c7 8 7 38 0 46" fill="none" stroke="#0B4DA2" stroke-width="2.4"
+          stroke-linecap="round"/>
+    <path d="M47 9c-7 8-7 38 0 46" fill="none" stroke="#0B4DA2" stroke-width="2.4"
+          stroke-linecap="round"/>
+    <g stroke="#0B4DA2" stroke-width="1.8" stroke-linecap="round" opacity=".75">
+      <path d="M20 17l4-2M20 24l4-1.4M20 31h4M20 38l4 1.4M20 45l4 2"/>
+      <path d="M44 17l-4-2M44 24l-4-1.4M44 31h-4M44 38l-4 1.4M44 45l-4 2"/>
+    </g>
+  </svg>
+  <h1>주점 직원 앱</h1>
+  <p class="sub">주문 현황 · 입금 확인 · 조리 상태</p>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <a class="dl" href="app.apk" download>앱 다운로드</a>
+    <p class="meta">안드로이드 전용 · 약 9.5MB</p>
+  </div>
+
+  <div class="card">
+    <h2>설치하는 법</h2>
+    <ol>
+      <li>
+        위 버튼을 눌러 파일을 받습니다
+        <span class="hint">"이런 유형의 파일은 기기에 위험할 수 있습니다" → 그래도 다운로드</span>
+      </li>
+      <li>
+        받은 파일을 눌러 설치합니다
+        <span class="hint">알림창이나 파일 앱 → 다운로드 폴더에 있습니다</span>
+      </li>
+      <li>
+        <b>이 출처의 앱 설치 허용</b>을 켭니다
+        <span class="hint">설정 화면으로 넘어가면 스위치를 켜고 뒤로가기</span>
+      </li>
+      <li>
+        <b>무시하고 설치</b>를 누릅니다
+        <span class="hint">스토어를 안 거친 앱이라 경고가 뜨는 게 정상입니다</span>
+      </li>
+    </ol>
+  </div>
+
+  <div class="note">
+    <b>설치했는데 주문이 안 보여요</b><br>
+    기기마다 따로 등록해야 합니다. 앱을 켜고
+    <span class="k">입금 확인</span> 화면 맨 아래로 내려서
+    <span class="k">기기 ID</span>를 길게 눌러 복사한 뒤 학생회장에게 보내주세요.
+    등록되면 바로 주문이 뜹니다.
+  </div>
+
+  <p class="warn">아이폰은 설치할 수 없습니다.<br>웹 주문 페이지와 주방 페이지는 아이폰에서도 됩니다.</p>
+
+</div>
+</body>
+</html>

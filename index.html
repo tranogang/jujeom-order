@@ -142,7 +142,35 @@
   .ordno{display:inline-block;margin-top:18px;background:var(--sub);border-radius:999px;
          padding:8px 16px;font-size:14px;font-weight:700;color:var(--muted)}
   .board{border:2px solid var(--accent)}
-  .bar-track{height:12px;border-radius:99px;background:var(--sub);overflow:hidden;margin-top:12px;
+
+  /* 남은 금액을 제일 크게 — 손님이 볼 건 결국 이거 하나 */
+  .hero-left{text-align:center;padding:26px 18px 22px;border:2px solid var(--accent);
+             border-radius:18px;margin-bottom:12px;background:var(--accent-weak)}
+  .hero-left.done{border-color:var(--ok);background:#e9f7ee}
+  .hero-left .cap{font-size:13px;font-weight:700;color:var(--accent)}
+  .hero-left.done .cap{color:var(--ok)}
+  .hero-left .amt{font-size:46px;font-weight:800;letter-spacing:-1.5px;margin-top:6px;
+                  color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.1}
+  .hero-left.done .amt{color:var(--ok)}
+  .hero-left .of{font-size:13px;color:var(--muted);margin-top:8px}
+
+  /* 계좌 — 한 줄씩 끊어서 읽기 쉽게 */
+  .acct{display:flex;flex-direction:column;gap:2px}
+  .acct .bank{font-size:14px;font-weight:700;color:var(--muted)}
+  .acct .num{font-size:25px;font-weight:800;letter-spacing:.5px;
+             font-variant-numeric:tabular-nums;word-break:keep-all}
+  .acct .owner{font-size:14px;color:var(--muted)}
+  .copy.main{background:var(--accent);border-color:var(--accent);color:#fff;
+             height:48px;width:100%;margin-top:14px;font-size:15px}
+  .copy.main:active{opacity:.85}
+
+  .kv{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+      border-bottom:1px solid var(--line);font-size:15px}
+  .kv:last-child{border-bottom:0}
+  .kv .k2{color:var(--muted);font-size:14px}
+  .kv .v2{font-weight:800;font-variant-numeric:tabular-nums}
+  .kv .v2.short{color:var(--warn)}
+  .bar-track{height:16px;border-radius:99px;background:#fff;overflow:hidden;margin-top:16px;
              border:1px solid var(--line)}
   .bar-fill{height:100%;border-radius:99px;width:0%;
             background:repeating-linear-gradient(45deg,var(--accent),var(--accent) 8px,
@@ -191,36 +219,45 @@
   <div class="phead">입금해 주세요</div>
   <div class="psub" id="payTable"></div>
 
+  <!-- 남은 금액 -->
+  <div class="hero-left" id="heroLeft">
+    <div class="cap" id="heroCap">보내실 금액</div>
+    <div class="amt" id="heroAmt">-</div>
+    <div class="of" id="heroOf"></div>
+    <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+
+  <!-- 입금자명 -->
   <div class="card board">
     <div class="k">입금자명 — 꼭 이대로 보내주세요</div>
     <div class="v big accent" id="payName">-</div>
-    <button class="copy" id="copyName">입금자명 복사</button>
+    <button class="copy main" id="copyName">입금자명 복사</button>
     <div class="note">입력하신 이름 <b>그대로</b> 보내주셔야 자동으로 확인됩니다.</div>
-    <div class="divide"></div>
-    <div class="k">입금 계좌</div>
-    <div class="v" id="payAccount">-</div>
-    <button class="copy" id="copyAccount">계좌번호 복사</button>
-    <div class="divide"></div>
-    <div class="k">보내실 금액</div>
-    <div class="v big" id="payAmount">-</div>
   </div>
 
+  <!-- 계좌 -->
+  <div class="card">
+    <div class="k" style="margin-bottom:8px">입금 계좌</div>
+    <div class="acct">
+      <span class="bank" id="acctBank">-</span>
+      <span class="num" id="acctNo">-</span>
+      <span class="owner" id="acctOwner">-</span>
+    </div>
+    <button class="copy main" id="copyAccount">계좌번호 복사</button>
+  </div>
+
+  <!-- 진행 상황 -->
   <div class="card">
     <div class="wait"><span class="spin"></span><span id="waitText">입금을 기다리는 중…</span></div>
-
-    <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
-    <div class="pay-nums">
-      <span class="l">들어온 금액</span><span class="r" id="paidNum">0원</span>
+    <div style="margin-top:14px">
+      <div class="kv"><span class="k2">주문 금액</span><span class="v2" id="kvTotal">-</span></div>
+      <div class="kv"><span class="k2">들어온 금액</span><span class="v2" id="paidNum">0원</span></div>
+      <div class="kv"><span class="k2">남은 금액</span><span class="v2 short" id="leftNum">-</span></div>
     </div>
-    <div class="pay-nums">
-      <span class="l">남은 금액</span><span class="r short" id="leftNum">-</span>
-    </div>
-
     <div class="hist hidden" id="histBox">
-      <div style="font-weight:700;color:var(--text);margin-bottom:2px">입금 내역</div>
+      <div style="font-weight:700;color:var(--text);margin:14px 0 2px">입금 내역</div>
       <div id="histList"></div>
     </div>
-
     <div class="note" id="waitNote">확인되면 소리와 알림으로 알려드려요. <b>이 화면을 닫지 말아 주세요.</b><br>
       나눠서 보내셔도 됩니다 — 합계가 채워지면 자동으로 확인돼요.</div>
   </div>
@@ -572,9 +609,12 @@ function showPay() {
   const o = currentOrder;
   $("payTable").textContent = `${o.tableNo}번 테이블 · 메뉴 ${o.items.reduce((a, b) => a + b.qty, 0)}개`;
   $("payName").textContent = o.depositorName;
-  $("payAccount").textContent = `${ACCOUNT_BANK} ${ACCOUNT_NO} (예금주 ${ACCOUNT_NAME})`;
-  $("payAmount").textContent = won(o.amount);
+  $("acctBank").textContent = ACCOUNT_BANK;
+  $("acctNo").textContent = ACCOUNT_NO;
+  $("acctOwner").textContent = "예금주 " + ACCOUNT_NAME;
+  $("kvTotal").textContent = won(o.amount);
   $("payLines").innerHTML = lineHtml(o);
+  renderPayProgress({ amount: o.amount, paidAmount: 0 });
   copyBtn($("copyName"), o.depositorName, "입금자명 복사");
   copyBtn($("copyAccount"), ACCOUNT_NO, "계좌번호 복사");
 
@@ -609,14 +649,23 @@ function renderPayProgress(v) {
   fill.style.width = pct + "%";
   fill.classList.toggle("done", left === 0 && paid > 0);
 
-  $("paidNum").textContent = won(paid);
+  // 제일 큰 숫자 = 아직 보내야 할 금액
+  const hero = $("heroLeft");
   if (left === 0 && paid > 0) {
-    $("leftNum").textContent = "다 보내셨어요";
-    $("leftNum").classList.remove("short");
+    hero.classList.add("done");
+    $("heroCap").textContent = "다 보내셨어요";
+    $("heroAmt").textContent = "확인 중";
+    $("heroOf").textContent = won(paid) + " 입금 완료";
   } else {
-    $("leftNum").textContent = won(left) + " 더 보내주세요";
-    $("leftNum").classList.add("short");
+    hero.classList.remove("done");
+    $("heroCap").textContent = paid > 0 ? "남은 금액" : "보내실 금액";
+    $("heroAmt").textContent = won(left);
+    $("heroOf").textContent = paid > 0 ? `주문 ${won(total)} 중 ${won(paid)} 확인됨` : "";
   }
+
+  $("paidNum").textContent = won(paid);
+  $("leftNum").textContent = left === 0 && paid > 0 ? "없음" : won(left);
+  $("leftNum").classList.toggle("short", left > 0);
 
   const list = v.payments ? Object.values(v.payments) : [];
   if (list.length) {
