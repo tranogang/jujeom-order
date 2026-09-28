@@ -375,11 +375,12 @@ const ACCOUNT_NO   = "97805359401013";
 const ACCOUNT_NAME = "이동현";
 
 /* 사진 대신 직접 그린 일러스트 */
+// loading="lazy"는 탭으로 감춰진 섹션에서 영영 안 불러와서 뺐다 (전체 520KB)
 const PHOTOS = ["set_homerun","set_anta","kalbim","jokbal","odeng",
                 "ramen","hwachae","tomato","popcorn","sabok"];
 const ART = {};
 for (const k of PHOTOS) {
-  ART[k] = `<img src="img/${k}.webp" alt="" loading="lazy" decoding="async">`;
+  ART[k] = `<img src="img/${k}.webp" alt="" decoding="async">`;
 }
 // 물은 사진이 없어서 직접 그린다
 ART.water = `<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#eef4fb"/>
