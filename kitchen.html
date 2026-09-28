@@ -252,7 +252,8 @@ function render() {
       const late = min >= LATE_MIN;
       const fresh = !seen.has(o.id) && !firstLoad;
       const cooking = o.status === "COOKING";
-      const items = (o.items || []).map(i =>
+      // 상차림비는 조리할 게 아니니 주방 화면에선 감춘다
+      const items = (o.items || []).filter(i => i.name !== "상차림비").map(i =>
         `<div class="it"><span class="q">${i.qty}</span><span>${i.name}</span></div>`).join("");
 
       // 조리 대기면 [조리 시작] + [바로 완료], 조리 중이면 [전달 완료] + [되돌리기]

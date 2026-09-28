@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<title>주문하기</title>
+<title>만루포차 주문</title>
 <style>
   :root{
     /* 야구장 테마 — 팀 컬러 계열 (로고·엠블럼은 쓰지 않음) */
@@ -56,7 +56,7 @@
   .item .pr{font-size:15px;font-weight:800;margin-top:8px}
   .thumb-wrap{position:relative;flex:0 0 auto}
   .thumb{width:84px;height:84px;border-radius:12px;overflow:hidden;background:var(--sub)}
-  .thumb svg{display:block;width:100%;height:100%}
+  .thumb svg,.thumb img{display:block;width:100%;height:100%;object-fit:cover}
   .badge-qty{position:absolute;top:-6px;right:-6px;background:var(--accent);color:#fff;font-size:12px;
              font-weight:800;min-width:20px;height:20px;border-radius:999px;display:grid;
              place-items:center;padding:0 5px}
@@ -85,7 +85,7 @@
   .grab{width:38px;height:4px;border-radius:99px;background:#dcdce3;margin:10px auto 2px}
   .sheet-pad{padding:8px 16px 16px}
   .hero{width:100%;height:190px;border-radius:14px;overflow:hidden;background:var(--sub)}
-  .hero svg{width:100%;height:100%;display:block}
+  .hero svg,.hero img{width:100%;height:100%;display:block;object-fit:contain}
   .sheet h3{font-size:20px;font-weight:800;margin:16px 0 6px}
   .ds2{font-size:14px;color:var(--muted);line-height:1.5}
   .stepper{display:flex;align-items:center;justify-content:space-between;margin:20px 0 4px}
@@ -101,6 +101,20 @@
   .cart-row .t{flex:1;min-width:0}
   .nm2{font-size:15px;font-weight:700}
   .pr2{font-size:13px;color:var(--muted);margin-top:3px}
+  .setup-row{display:flex;align-items:center;gap:11px;padding:13px 12px;margin-top:10px;
+             border:1px solid var(--line);border-radius:13px;background:var(--sub);cursor:pointer}
+  .setup-row input{width:19px;height:19px;accent-color:var(--accent);flex:0 0 auto;margin:0}
+  .setup-row .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .setup-row .t b{font-size:14px}
+  .setup-row .t small{font-size:11.5px;color:var(--muted)}
+  .setup-row .amt{font-size:14px;white-space:nowrap}
+  .setup-row.off{opacity:.5}
+  .minnote{font-size:12.5px;color:#EA580C;font-weight:700;margin-top:8px;text-align:right}
+  .minnote:empty{display:none}
+  .uniform{display:flex;align-items:center;gap:9px;margin:0 16px 12px;padding:11px 13px;
+           border:1px dashed var(--accent);border-radius:13px;background:var(--accent-weak);
+           font-size:12.5px;color:var(--accent);font-weight:700;line-height:1.45}
+  .uniform svg{flex:0 0 auto}
   .sum{display:flex;justify-content:space-between;align-items:baseline;padding:18px 0 4px}
   .sum b{font-size:22px;font-weight:800}
   .fld{margin-top:18px}
@@ -199,12 +213,21 @@
           <circle cx="20" cy="20" r="18" fill="#fff" stroke="#c9d6e6" stroke-width="2"/>
           <path d="M8 7q7 13 0 26M32 7q-7 13 0 26" stroke="#d32f2f" stroke-width="2.4" fill="none"/>
         </svg>
-        <span>모바일공학전공 주점<small>BALLPARK ORDER</small></span>
+        <span>만루포차<small>모바일공학과 X 사회복지학부</small></span>
       </div>
       <div class="table-badge" id="tableBadge">테이블 확인 중</div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </header>
+
+  <div class="uniform">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3 4 5v6h3v10h10V11h3V5l-4-2-4 3z"/>
+    </svg>
+    <span>야구 유니폼 입고 오시면 <b>사복주 서비스!</b> 직원을 불러주세요</span>
+  </div>
+
   <main id="list"></main>
   <div class="bar">
     <button class="cta" id="cartBtn" disabled>
@@ -312,7 +335,18 @@
   <div class="sheet-pad">
     <h3 style="margin-top:6px">장바구니</h3>
     <div id="cartList"></div>
+
+    <label class="setup-row" id="setupRow">
+      <input type="checkbox" id="setupChk" checked>
+      <span class="t">
+        <b>상차림비</b>
+        <small>테이블당 1회 · 기본안주 무한제공</small>
+      </span>
+      <b class="amt">5,000원</b>
+    </label>
+
     <div class="sum"><span>합계</span><b id="cartTotal">0원</b></div>
+    <div class="minnote" id="minNote"></div>
     <div class="fld">
       <label for="nameInput">입금자 이름</label>
       <input type="text" id="nameInput" placeholder="예) 홍길동" maxlength="10" autocomplete="name">
@@ -341,84 +375,44 @@ const ACCOUNT_NO   = "97805359401013";
 const ACCOUNT_NAME = "이동현";
 
 /* 사진 대신 직접 그린 일러스트 */
-const ART = {
-  noodle:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff4e6"/>
-    <ellipse cx="60" cy="74" rx="38" ry="25" fill="#e8d3b4"/><ellipse cx="60" cy="68" rx="36" ry="22" fill="#fffaf2"/>
-    <path d="M32 66q14-14 28-6t28-4" stroke="#f0c674" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <path d="M34 74q14-12 26-4t26-6" stroke="#f7d894" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <circle cx="48" cy="62" r="6" fill="#d97757"/><circle cx="74" cy="65" r="5" fill="#d97757"/></svg>`,
-  egg:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff8e7"/>
-    <rect x="22" y="48" width="76" height="30" rx="8" fill="#f7d774" stroke="#e8c04a" stroke-width="2"/>
-    <path d="M42 48v30M62 48v30M82 48v30" stroke="#e8c04a" stroke-width="2"/>
-    <circle cx="33" cy="63" r="4" fill="#8fbf6a"/><circle cx="53" cy="63" r="4" fill="#d97757"/>
-    <circle cx="73" cy="63" r="4" fill="#8fbf6a"/><circle cx="91" cy="63" r="4" fill="#d97757"/>
-    <rect x="16" y="80" width="88" height="7" rx="3.5" fill="#dfe3ea"/></svg>`,
-  fruit:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fdeef2"/>
-    <path d="M28 52h64l-7 34a10 10 0 0 1-10 8H45a10 10 0 0 1-10-8z" fill="#ffd3e0"/>
-    <path d="M28 52h64l-2 10H30z" fill="#fff"/><circle cx="48" cy="70" r="7" fill="#ff8fab"/>
-    <circle cx="68" cy="66" r="6" fill="#ffd166"/><circle cx="60" cy="80" r="6" fill="#8fbf6a"/>
-    <circle cx="76" cy="79" r="5" fill="#ff8fab"/><rect x="24" y="44" width="72" height="8" rx="4" fill="#fff"/></svg>`,
-  dry:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fbf3e8"/>
-    <ellipse cx="60" cy="76" rx="36" ry="15" fill="#efe0cb"/>
-    <path d="M40 72c4-16 12-24 20-24s16 8 20 24" fill="#e9b872"/>
-    <path d="M46 70c3-11 8-17 14-17s11 6 14 17" fill="#f3cf9b"/>
-    <circle cx="52" cy="76" r="4" fill="#c98b4b"/><circle cx="68" cy="78" r="4" fill="#c98b4b"/></svg>`,
-  fries:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff3ea"/>
-    <path d="M44 42h6v34h-6zM54 36h6v40h-6zM64 40h6v36h-6zM74 46h6v30h-6z" fill="#f5c65c"/>
-    <path d="M38 66h44l-5 26a8 8 0 0 1-8 7H51a8 8 0 0 1-8-7z" fill="#e2593f"/>
-    <path d="M38 66h44l-1.5 8h-41z" fill="#fff" opacity=".35"/></svg>`,
-  soju:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#eaf6f0"/>
-    <path d="M54 26h12v16l8 12v40a6 6 0 0 1-6 6H52a6 6 0 0 1-6-6V54l8-12z" fill="#9ed7bd"/>
-    <path d="M54 26h12v16l8 12v10H46V54l8-12z" fill="#c4e9d9"/>
-    <rect x="52" y="22" width="16" height="8" rx="2" fill="#4f9f7f"/>
-    <rect x="49" y="70" width="22" height="20" rx="3" fill="#fff" opacity=".85"/></svg>`,
-  beer:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff8e1"/>
-    <path d="M40 44h34v46a8 8 0 0 1-8 8H48a8 8 0 0 1-8-8z" fill="#f7c948"/>
-    <path d="M40 44h34v12H40z" fill="#fdf0c8"/>
-    <path d="M74 54h8a8 8 0 0 1 0 16h-8" fill="none" stroke="#e0a800" stroke-width="4"/>
-    <ellipse cx="57" cy="42" rx="18" ry="9" fill="#fffdf6"/>
-    <circle cx="48" cy="38" r="6" fill="#fff"/><circle cx="66" cy="38" r="5" fill="#fff"/></svg>`,
-  makgeolli:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#f4f1ea"/>
-    <path d="M44 34h32v54a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#f2efe6"/>
-    <path d="M44 56h32v32a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#fbfaf6"/>
-    <rect x="46" y="44" width="28" height="14" rx="2" fill="#d9e8c8"/>
-    <rect x="50" y="26" width="20" height="10" rx="3" fill="#8fbf6a"/></svg>`,
-  cocktailBlue:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#e9f1ff"/>
-    <path d="M34 36h52L64 64v26h10v6H46v-6h10V64z" fill="#bcd6ff"/>
-    <path d="M40 42h40L64 62h-2z" fill="#4f8ef7"/><circle cx="58" cy="50" r="3" fill="#fff" opacity=".8"/>
-    <path d="M78 30l-8 12" stroke="#f7a8c4" stroke-width="3" stroke-linecap="round"/></svg>`,
-  cocktailPink:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fdecf3"/>
-    <path d="M34 36h52L64 64v26h10v6H46v-6h10V64z" fill="#ffd0e2"/>
-    <path d="M40 42h40L64 62h-2z" fill="#f2668f"/><circle cx="58" cy="50" r="3" fill="#fff" opacity=".85"/>
-    <path d="M78 30l-8 12" stroke="#8fbf6a" stroke-width="3" stroke-linecap="round"/></svg>`,
-  cola:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#f2eceb"/>
-    <path d="M44 34h32v54a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#5c3a32"/>
-    <path d="M44 34h32v14H44z" fill="#c7b2ac"/>
-    <rect x="50" y="56" width="20" height="22" rx="3" fill="#fff" opacity=".85"/></svg>`,
-  cider:`<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#eafaf4"/>
-    <path d="M44 34h32v54a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8z" fill="#bfead9"/>
-    <path d="M44 34h32v14H44z" fill="#e6f7ef"/><circle cx="54" cy="70" r="3" fill="#fff"/>
-    <circle cx="66" cy="78" r="2.5" fill="#fff"/><circle cx="60" cy="62" r="2" fill="#fff"/></svg>`
-};
+const PHOTOS = ["set_homerun","set_anta","kalbim","jokbal","odeng",
+                "ramen","hwachae","tomato","popcorn","sabok"];
+const ART = {};
+for (const k of PHOTOS) {
+  ART[k] = `<img src="img/${k}.webp" alt="" loading="lazy" decoding="async">`;
+}
+// 물은 사진이 없어서 직접 그린다
+ART.water = `<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#eef4fb"/>
+  <path d="M46 26h28l-3 66a11 11 0 0 1-11 10h0a11 11 0 0 1-11-10z"
+        fill="#dbeafe" stroke="#93b4d8" stroke-width="2.5"/>
+  <rect x="49" y="18" width="22" height="10" rx="3" fill="#0B4DA2"/>
+  <path d="M48 60h24l-2 32a9 9 0 0 1-9 8h-2a9 9 0 0 1-9-8z" fill="#bfdcf7"/>
+  <ellipse cx="60" cy="60" rx="12" ry="3" fill="#fff" opacity=".65"/></svg>`;
 
-/* 확인용이라 가격은 전부 1원 */
+/* 만루포차 실제 메뉴 — 사진은 img/ 폴더 */
 const DEFAULT_MENU = [
-  { cat:"추천", name:"사복주",       desc:"사이다 + 복분자주. 사회복지학과 시그니처", price:1, art:"cocktailPink" },
-  { cat:"추천", name:"청춘 블루",     desc:"파란 소주 칵테일. 우리 과 시그니처",      price:1, art:"cocktailBlue" },
-  { cat:"안주", name:"골뱅이소면",     desc:"새콤달콤 골뱅이무침에 소면 사리",        price:1, art:"noodle" },
-  { cat:"안주", name:"계란말이",       desc:"두툼하게 말아낸 계란말이",              price:1, art:"egg" },
-  { cat:"안주", name:"과일화채",       desc:"시원한 사이다에 과일 듬뿍",             price:1, art:"fruit" },
-  { cat:"안주", name:"마른안주 모둠",   desc:"쥐포, 땅콩, 먹태",                     price:1, art:"dry" },
-  { cat:"안주", name:"감자튀김",       desc:"케첩과 함께",                          price:1, art:"fries" },
-  { cat:"주류", name:"소주",          desc:"참이슬 / 처음처럼",                     price:1, art:"soju" },
-  { cat:"주류", name:"맥주",          desc:"카스 / 테라",                          price:1, art:"beer" },
-  { cat:"주류", name:"막걸리",         desc:"생막걸리",                             price:1, art:"makgeolli" },
-  { cat:"음료", name:"콜라",          desc:"500ml",                                price:1, art:"cola" },
-  { cat:"음료", name:"사이다",         desc:"500ml",                                price:1, art:"cider" }
+  { cat:"세트", name:"만루홈런 set",  desc:"육회 칼빔면 + 팝콘 치킨 + 사복주", price:27000, art:"set_homerun" },
+  { cat:"세트", name:"끝내기 안타 set", desc:"족발 + 마라유부숙주고수김치라면",   price:29000, art:"set_anta" },
+
+  { cat:"메인", name:"육회 칼빔면",    desc:"육회 올린 매콤 칼빔면",            price:18000, art:"kalbim" },
+  { cat:"메인", name:"족발",          desc:"쫄깃한 족발 한 접시",              price:22000, art:"jokbal" },
+
+  { cat:"사이드", name:"어묵탕",        desc:"뜨끈한 국물에 어묵 듬뿍",          price:11000, art:"odeng" },
+  { cat:"사이드", name:"마라유부숙주고수김치라면", desc:"마라 국물에 유부·숙주·고수·김치", price:9000, art:"ramen" },
+  { cat:"사이드", name:"황도화채",      desc:"시원한 사이다에 황도 듬뿍",        price:6000,  art:"hwachae" },
+  { cat:"사이드", name:"설탕 토마토",    desc:"설탕 솔솔 뿌린 토마토",            price:6000,  art:"tomato" },
+  { cat:"사이드", name:"팝콘 치킨",     desc:"한 입 크기 바삭한 치킨",           price:6000,  art:"popcorn" },
+
+  { cat:"음료", name:"사복주",         desc:"사이다 + 복분자 + 소주", price:5000, art:"sabok" },
+  { cat:"음료", name:"물",            desc:"생수",                  price:1000, art:"water" }
 ];
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+const SETUP_FEE = 5000;    // 상차림비 (테이블당 1회)
+const MIN_ORDER = 25000;   // 최소주문금액 (첫 주문에만)
+const SETUP_NAME = "상차림비";
 
 const params = new URLSearchParams(location.search);
 const tableNo = parseInt(params.get("t") || "0", 10);
@@ -432,6 +426,13 @@ const won = n => n.toLocaleString("ko-KR") + "원";
 const artOf = m => ART[m.art] || ART.dry;
 
 $("tableBadge").textContent = tableNo > 0 ? `${tableNo}번 테이블` : "번호 없음";
+
+// 같은 폰에서 이 테이블로 이미 주문했으면 상차림비·최소주문을 다시 묻지 않는다.
+// (다른 일행 폰으로 시키는 경우가 있어서 체크박스로 끄고 켤 수 있게 해둔다)
+const setupKey = `jujeom_setup_t${tableNo}`;
+let firstOrder = true;
+try { firstOrder = localStorage.getItem(setupKey) !== "done"; } catch (e) {}
+$("setupChk").checked = firstOrder;
 
 async function loadMenu() {
   try {
@@ -519,7 +520,14 @@ function closeSheets() {
 }
 $("dim").onclick = closeSheets;
 
-function total() { let t = 0; cart.forEach((q, i) => t += menu[i].price * q); return t; }
+function foodTotal() { let t = 0; cart.forEach((q, i) => t += menu[i].price * q); return t; }
+function setupFee() { return $("setupChk").checked ? SETUP_FEE : 0; }
+function total() { return foodTotal() + setupFee(); }
+/** 최소주문은 상차림비를 뺀 음식값 기준. 상차림비를 끈 추가 주문엔 적용 안 한다 */
+function shortOf() {
+  if (!$("setupChk").checked) return 0;
+  return Math.max(0, MIN_ORDER - foodTotal());
+}
 function count() { let c = 0; cart.forEach(q => c += q); return c; }
 
 function refreshBar() {
@@ -530,6 +538,7 @@ function refreshBar() {
   $("cartLabel").textContent = c === 0 ? "메뉴를 담아주세요" : `${won(total())} · 장바구니 보기`;
 }
 $("cartBtn").onclick = () => { renderCart(); openSheet("cartSheet"); };
+$("setupChk").onchange = () => { renderCart(); refreshBar(); };
 
 function renderCart() {
   const rows = [];
@@ -542,7 +551,12 @@ function renderCart() {
     </div>`);
   });
   $("cartList").innerHTML = rows.join("");
+  $("setupRow").classList.toggle("off", !$("setupChk").checked);
   $("cartTotal").textContent = won(total());
+  const short = shortOf();
+  $("minNote").textContent = short
+    ? `최소주문 ${won(MIN_ORDER)} · ${won(short)} 더 담아주세요`
+    : "";
   $("cartList").onclick = e => {
     const b = e.target.closest("button[data-d]"); if (!b) return;
     const i = +b.closest(".cart-row").dataset.i;
@@ -562,7 +576,10 @@ function checkName() {
   const n = depositorName();
   $("nameNote").innerHTML = n ? `입금자명을 <b>${n}</b> 으로 보내주세요.`
                               : "입금할 때 쓸 이름을 그대로 적어주세요.";
-  $("submitBtn").disabled = !(total() > 0 && n.length >= 2 && tableNo > 0);
+  const short = shortOf();
+  const btn = $("submitBtn");
+  btn.disabled = !(foodTotal() > 0 && n.length >= 2 && tableNo > 0 && short === 0);
+  btn.textContent = short ? `${won(short)} 더 담아주세요` : "주문하고 입금 안내 받기";
 }
 $("nameInput").addEventListener("input", checkName);
 
@@ -576,6 +593,7 @@ $("submitBtn").onclick = async () => {
 
   const items = [];
   cart.forEach((q, i) => items.push({ name: menu[i].name, qty: q, price: menu[i].price }));
+  if ($("setupChk").checked) items.push({ name: SETUP_NAME, qty: 1, price: SETUP_FEE });
   const order = {
     tableNo, customerName: $("nameInput").value.trim(), depositorName: depositorName(),
     amount: total(), items, status: "WAITING", createdAt: Date.now()
@@ -585,7 +603,10 @@ $("submitBtn").onclick = async () => {
     const r = push(ref(db, "orders"));
     await set(r, order);
     currentOrder = order; currentOrderId = r.key;
-    try { localStorage.setItem("jujeom_order_id", r.key); } catch (e) {}
+    try {
+      localStorage.setItem("jujeom_order_id", r.key);
+      localStorage.setItem(setupKey, "done");   // 다음 주문부터는 상차림비 자동 해제
+    } catch (e) {}
     showPay();
   } catch (e) {
     console.error(e);
