@@ -82,7 +82,15 @@
          transition:transform .26s cubic-bezier(.22,1,.36,1);max-height:88vh;overflow:auto;
          padding-bottom:env(safe-area-inset-bottom)}
   .sheet.on{transform:translateY(0)}
-  .grab{width:38px;height:4px;border-radius:99px;background:#dcdce3;margin:10px auto 2px}
+  /* 손잡이는 얇아서 누르기 어렵다. 주변까지 넓게 잡아 준다 */
+  .grab-zone{padding:12px 0 8px;touch-action:none;cursor:grab;position:relative}
+  .grab-zone:active{cursor:grabbing}
+  .grab{width:44px;height:5px;border-radius:99px;background:#cfd4dd;margin:0 auto}
+  .sheet.dragging{transition:none}
+  .sheet-x{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:50%;
+           border:0;background:var(--sub);color:var(--muted);font-size:20px;line-height:1;
+           display:grid;place-items:center;cursor:pointer;z-index:3;padding:0}
+  .sheet-x:active{background:#e6eaf1}
   .sheet-pad{padding:8px 16px 16px}
   .hero{width:100%;height:190px;border-radius:14px;overflow:hidden;background:var(--sub)}
   .hero svg,.hero img{width:100%;height:100%;display:block;object-fit:contain}
@@ -317,7 +325,8 @@
 <div class="dim" id="dim"></div>
 
 <div class="sheet" id="itemSheet">
-  <div class="grab"></div>
+  <button class="sheet-x" data-close aria-label="닫기">&times;</button>
+  <div class="grab-zone"><div class="grab"></div></div>
   <div class="sheet-pad">
     <div class="hero" id="sheetArt"></div>
     <h3 id="sheetName">-</h3>
@@ -331,7 +340,8 @@
 </div>
 
 <div class="sheet" id="cartSheet">
-  <div class="grab"></div>
+  <button class="sheet-x" data-close aria-label="닫기">&times;</button>
+  <div class="grab-zone"><div class="grab"></div></div>
   <div class="sheet-pad">
     <h3 style="margin-top:6px">장바구니</h3>
     <div id="cartList"></div>
@@ -566,13 +576,77 @@ function setSheetQty(q) {
 }
 $("sAdd").onclick = () => { cart.set(sheetIdx, sheetQty); closeSheets(); repaintBadges(); refreshBar(); };
 
-function openSheet(id) { $("dim").classList.add("on"); $(id).classList.add("on"); }
+function openSheet(id) {
+  const el = $(id);
+  el.style.transform = "";
+  el.scrollTop = 0;
+  $("dim").classList.add("on");
+  el.classList.add("on");
+}
 function closeSheets() {
   $("dim").classList.remove("on");
-  $("itemSheet").classList.remove("on");
-  $("cartSheet").classList.remove("on");
+  ["itemSheet", "cartSheet"].forEach(id => {
+    const el = $(id);
+    el.classList.remove("on", "dragging");
+    el.style.transform = "";   // 끌어내리던 위치가 남지 않게
+  });
 }
 $("dim").onclick = closeSheets;
+
+/**
+ * 폰에서 시트를 못 닫는다는 제보가 있어 닫는 길을 셋으로 늘렸다.
+ *   1) 손잡이나 시트를 아래로 쓸어내리기
+ *   2) 오른쪽 위 X
+ *   3) 어두운 배경 탭 (원래 있던 것)
+ * 내용이 길어 스크롤 중일 때는 끌어내리기가 스크롤을 방해하지 않도록,
+ * 맨 위까지 올라온 상태에서만 드래그를 시작한다.
+ */
+function wireSheetGestures(id) {
+  const el = $(id);
+  let startY = null, dy = 0, dragging = false, fromHandle = false;
+
+  const yOf = e => (e.touches && e.touches[0] ? e.touches[0].clientY : e.clientY);
+
+  const down = e => {
+    if (e.target.closest("[data-close]")) return;
+    fromHandle = !!e.target.closest(".grab-zone");
+    // 손잡이에서 시작하면 언제든, 본문에서 시작하면 맨 위일 때만
+    if (!fromHandle && el.scrollTop > 0) return;
+    startY = yOf(e); dy = 0; dragging = true;
+    el.classList.add("dragging");
+  };
+
+  const move = e => {
+    if (!dragging || startY === null) return;
+    dy = yOf(e) - startY;
+    if (dy < 0) dy = 0;                       // 위로는 안 끌린다
+    el.style.transform = `translateY(${dy}px)`;
+    if (dy > 0 && e.cancelable) e.preventDefault();
+  };
+
+  const up = () => {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove("dragging");
+    el.style.transform = "";
+    // 거의 안 움직였는데 손잡이에서 뗐으면 "탭"으로 보고 닫는다
+    if (dy > 90 || (fromHandle && dy < 6)) closeSheets();
+    startY = null; dy = 0;
+  };
+
+  el.addEventListener("touchstart", down, { passive: true });
+  el.addEventListener("touchmove", move, { passive: false });
+  el.addEventListener("touchend", up);
+  el.addEventListener("touchcancel", up);
+  el.addEventListener("mousedown", down);
+  window.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", up);
+}
+wireSheetGestures("itemSheet");
+wireSheetGestures("cartSheet");
+
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheets);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(); });
 
 function foodTotal() { let t = 0; cart.forEach((q, i) => t += menu[i].price * q); return t; }
 function setupFee() { return $("setupChk").checked ? SETUP_FEE : 0; }
