@@ -414,6 +414,7 @@ const db = getDatabase(app);
 const SETUP_FEE = 5000;    // 상차림비 (테이블당 1회)
 const MIN_ORDER = 25000;   // 최소주문금액 (첫 주문에만)
 const SETUP_NAME = "상차림비";
+const TABLE_EXPIRE = 3 * 60 * 60 * 1000;   // 도장 찍힌 지 3시간 지나면 새 팀으로 본다
 
 const params = new URLSearchParams(location.search);
 const tableNo = parseInt(params.get("t") || "0", 10);
@@ -428,12 +429,28 @@ const artOf = m => ART[m.art] || ART.dry;
 
 $("tableBadge").textContent = tableNo > 0 ? `${tableNo}번 테이블` : "번호 없음";
 
-// 같은 폰에서 이 테이블로 이미 주문했으면 상차림비·최소주문을 다시 묻지 않는다.
-// (다른 일행 폰으로 시키는 경우가 있어서 체크박스로 끄고 켤 수 있게 해둔다)
+// 상차림비는 "테이블당 1회"라 폰이 아니라 서버의 테이블 상태로 판단한다.
+// tables/3 에 도장이 찍혀 있으면 이미 자리를 연 팀 → 추가 주문.
+// 서버를 못 읽는 상황(오프라인 등)에만 폰 기억을 예비로 쓴다.
 const setupKey = `jujeom_setup_t${tableNo}`;
 let firstOrder = true;
 try { firstOrder = localStorage.getItem(setupKey) !== "done"; } catch (e) {}
 $("setupChk").checked = firstOrder;
+
+async function syncTableState() {
+  if (tableNo <= 0) return;
+  try {
+    const snap = await get(ref(db, `tables/${tableNo}`));
+    const openedAt = snap.exists() ? snap.val().openedAt : 0;
+    const live = openedAt && (Date.now() - openedAt) < TABLE_EXPIRE;
+    firstOrder = !live;
+  } catch (e) {
+    console.warn("테이블 상태를 못 읽어 폰 기록으로 판단합니다", e);
+  }
+  $("setupChk").checked = firstOrder;
+  if (typeof renderCart === "function") { renderCart(); refreshBar(); }
+  checkName();
+}
 
 async function loadMenu() {
   try {
@@ -606,8 +623,15 @@ $("submitBtn").onclick = async () => {
     currentOrder = order; currentOrderId = r.key;
     try {
       localStorage.setItem("jujeom_order_id", r.key);
-      localStorage.setItem(setupKey, "done");   // 다음 주문부터는 상차림비 자동 해제
+      localStorage.setItem(setupKey, "done");
     } catch (e) {}
+    // 이 테이블은 이제 "자리 연 상태". 다음 주문부터는 누구 폰이든 상차림비가 빠진다.
+    // 이미 도장이 찍혀 있으면 규칙에서 막히는데, 그건 정상이라 무시한다.
+    if (firstOrder) {
+      firstOrder = false;
+      set(ref(db, `tables/${tableNo}`), { openedAt: Date.now() })
+        .catch(e => console.warn("테이블 도장 실패(이미 열려 있을 수 있음)", e));
+    }
     showPay();
   } catch (e) {
     console.error(e);
@@ -748,6 +772,13 @@ function showDone(v) {
 }
 
 loadMenu();
+syncTableState();
+
+// 자리에 앉아 있는 동안 다른 일행이 먼저 주문했을 수 있으니,
+// 화면으로 돌아올 때마다 테이블 상태를 다시 본다.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") syncTableState();
+});
 </script>
 </body>
 </html>

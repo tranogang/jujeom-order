@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>테이블 현황</title>
+<style>
+  :root{
+    --bg:#ffffff; --sub:#f5f8fc; --line:#dde6f1;
+    --txt:#141a22; --muted:#6b7684;
+    --blue:#0b4da2; --grass:#1e7a46; --amber:#ea580c; --red:#dc2626;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);
+       font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+       display:flex;flex-direction:column;overflow:hidden}
+  button{font-family:inherit}
+
+  header{flex:0 0 auto;display:flex;align-items:center;gap:16px;
+         padding:14px 20px;border-bottom:3px solid var(--blue);background:#fff}
+  h1{font-size:20px;margin:0;letter-spacing:-.3px}
+  .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .legend{margin-left:auto;display:flex;gap:14px;font-size:12.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;
+            vertical-align:-1px}
+
+  main{flex:1;overflow-y:auto;padding:16px 20px 28px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:11px}
+
+  .t{border:1.5px solid var(--line);border-radius:14px;background:var(--sub);
+     padding:13px 10px 11px;text-align:center;cursor:pointer;position:relative}
+  .t .no{font-size:24px;font-weight:800;line-height:1.1}
+  .t .st{font-size:12px;margin-top:4px;color:var(--muted);font-weight:700}
+  .t .el{font-size:11.5px;margin-top:2px;color:var(--muted);min-height:14px}
+
+  .t.open{background:#eef4fc;border-color:var(--blue)}
+  .t.open .no{color:var(--blue)}
+  .t.open .st{color:var(--blue)}
+  .t.late{background:#fff4ec;border-color:var(--amber)}
+  .t.late .no,.t.late .st{color:var(--amber)}
+  .t.free{opacity:.72}
+
+  .close{margin-top:9px;width:100%;height:32px;border-radius:9px;border:0;
+         background:var(--blue);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer}
+  .t.late .close{background:var(--amber)}
+
+  .note{margin-top:20px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .note b{color:var(--txt)}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+         background:#141a22;color:#fff;padding:11px 18px;border-radius:11px;
+         font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .18s}
+  .toast.on{opacity:1}
+
+  .setup{position:fixed;inset:0;background:#fff;display:none;place-items:center;
+         padding:30px;text-align:center;font-size:14px;line-height:1.7}
+  .setup.on{display:grid}
+  .uid{margin-top:14px;background:var(--sub);border:1px solid var(--line);border-radius:10px;
+       padding:11px 13px;font-size:12px;word-break:break-all;user-select:all}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>테이블 현황</h1>
+    <div class="sub">손님이 나가면 <b>마감</b>을 눌러주세요 · 3시간이 지나면 자동으로 비워집니다</div>
+  </div>
+  <div class="legend">
+    <span><i style="background:#dde6f1"></i>비어있음</span>
+    <span><i style="background:#0b4da2"></i>사용 중</span>
+    <span><i style="background:#ea580c"></i>2시간 경과</span>
+  </div>
+</header>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="note">
+    <b>상차림비는 테이블당 한 번만</b> 받습니다.
+    자리를 연 테이블은 누구 폰으로 주문해도 상차림비가 붙지 않고, 최소주문금액도 적용되지 않습니다.<br>
+    손님이 나갔는데 마감을 안 하면 <b>다음 팀에게 상차림비를 못 받습니다.</b> 꼭 눌러주세요.
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="setup" id="setup">
+  <div>
+    <b>이 기기는 아직 등록되지 않았습니다</b><br>
+    아래 기기 ID를 학생회장에게 보내주세요.
+    <div class="uid" id="uidBox">확인 중…</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, onValue, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDRtSHfavnWGNAgLl9Agxjql9dc74cbpKg",
+  authDomain: "mobile-jujeom.firebaseapp.com",
+  databaseURL: "https://mobile-jujeom-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mobile-jujeom",
+  storageBucket: "mobile-jujeom.firebasestorage.app",
+  messagingSenderId: "625669561757",
+  appId: "1:625669561757:web:5e7fbaf2b77fd9170d2374"
+};
+
+const TABLES = 38;
+const EXPIRE = 3 * 60 * 60 * 1000;   // 손님 페이지와 같은 기준
+const LATE   = 2 * 60 * 60 * 1000;   // 2시간 넘으면 주황
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const $ = id => document.getElementById(id);
+
+let state = {};   // { 3: openedAt, ... }
+
+signInAnonymously(auth).catch(e => console.error(e));
+onAuthStateChanged(auth, user => {
+  if (!user) return;
+  $("uidBox").textContent = user.uid;
+  onValue(ref(db, "tables"), snap => {
+    state = snap.val() || {};
+    draw();
+  }, err => {
+    console.error(err);
+    $("setup").classList.add("on");
+  });
+});
+
+function elapsed(ms) {
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return `${m}분 경과`;
+  return `${Math.floor(m / 60)}시간 ${m % 60}분 경과`;
+}
+
+function draw() {
+  const now = Date.now();
+  const cells = [];
+  for (let n = 1; n <= TABLES; n++) {
+    const openedAt = state[n]?.openedAt || 0;
+    const age = openedAt ? now - openedAt : 0;
+    const live = openedAt && age < EXPIRE;
+    const late = live && age > LATE;
+    const cls = live ? (late ? "t open late" : "t open") : "t free";
+    cells.push(`<div class="${cls}">
+      <div class="no">${n}</div>
+      <div class="st">${live ? "사용 중" : "비어있음"}</div>
+      <div class="el">${live ? elapsed(age) : ""}</div>
+      ${live ? `<button class="close" data-n="${n}">마감</button>` : ""}
+    </div>`);
+  }
+  $("grid").innerHTML = cells.join("");
+}
+
+$("grid").onclick = async e => {
+  const b = e.target.closest("button[data-n]");
+  if (!b) return;
+  const n = +b.dataset.n;
+  if (!confirm(`${n}번 테이블을 마감할까요?\n\n다음 손님부터 상차림비를 다시 받습니다.`)) return;
+  b.disabled = true; b.textContent = "…";
+  try {
+    await remove(ref(db, `tables/${n}`));
+    toast(`${n}번 테이블 마감`);
+  } catch (err) {
+    console.error(err);
+    alert("마감하지 못했어요. 이 기기가 등록되어 있는지 확인해주세요.");
+    b.disabled = false; b.textContent = "마감";
+  }
+};
+
+let toastTimer;
+function toast(msg) {
+  $("toast").textContent = msg;
+  $("toast").classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.remove("on"), 1800);
+}
+
+// 경과 시간이 흘러가게 1분마다 다시 그린다
+setInterval(draw, 60000);
+draw();
+
+if ("wakeLock" in navigator) {
+  const keep = () => navigator.wakeLock.request("screen").catch(() => {});
+  keep();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") keep();
+  });
+}
+</script>
+</body>
+</html>
