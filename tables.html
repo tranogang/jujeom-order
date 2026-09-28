@@ -42,6 +42,9 @@
   .t.late .no,.t.late .st{color:var(--amber)}
   .t.free{opacity:.72}
 
+  .fee{margin-top:5px;font-size:11px;font-weight:800;border-radius:7px;padding:3px 0}
+  .fee.ok{background:#e7f4ec;color:var(--grass)}
+  .fee.no{background:#fdecec;color:var(--red)}
   .close{margin-top:9px;width:100%;height:32px;border-radius:9px;border:0;
          background:var(--blue);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer}
   .t.late .close{background:var(--amber)}
@@ -66,7 +69,7 @@
 <header>
   <div>
     <h1>테이블 현황</h1>
-    <div class="sub">손님이 나가면 <b>마감</b>을 눌러주세요 · 3시간이 지나면 자동으로 비워집니다</div>
+    <div class="sub">관리자 앱의 착석·이용종료가 여기 반영됩니다 · 앱을 안 쓸 때는 <b>마감</b>을 직접 눌러주세요</div>
   </div>
   <div class="legend">
     <span><i style="background:#dde6f1"></i>비어있음</span>
@@ -78,9 +81,11 @@
 <main>
   <div class="grid" id="grid"></div>
   <div class="note">
-    <b>상차림비는 테이블당 한 번만</b> 받습니다.
-    자리를 연 테이블은 누구 폰으로 주문해도 상차림비가 붙지 않고, 최소주문금액도 적용되지 않습니다.<br>
+    <b>상차림비는 테이블당 한 번만</b> 받습니다. 한 번 받은 테이블은 누구 폰으로 주문해도
+    상차림비가 붙지 않고 최소주문금액도 풀립니다.<br>
+    <b>사용 중 · 상차림비 아직</b>은 자리는 잡았는데 아직 주문이 없는 테이블입니다 — 정상입니다.<br>
     손님이 나갔는데 마감을 안 하면 <b>다음 팀에게 상차림비를 못 받습니다.</b> 꼭 눌러주세요.
+    (관리자 앱에서 <b>이용 종료</b>를 누르면 여기서도 자동으로 비워집니다)
   </div>
 </main>
 
@@ -144,7 +149,9 @@ function draw() {
   const now = Date.now();
   const cells = [];
   for (let n = 1; n <= TABLES; n++) {
-    const openedAt = state[n]?.openedAt || 0;
+    const row = state[n] || {};
+    const openedAt = row.openedAt || 0;
+    const fee = row.feeCharged === true;
     const age = openedAt ? now - openedAt : 0;
     const live = openedAt && age < EXPIRE;
     const late = live && age > LATE;
@@ -153,6 +160,7 @@ function draw() {
       <div class="no">${n}</div>
       <div class="st">${live ? "사용 중" : "비어있음"}</div>
       <div class="el">${live ? elapsed(age) : ""}</div>
+      ${live ? `<div class="fee ${fee ? "ok" : "no"}">상차림비 ${fee ? "받음" : "아직"}</div>` : ""}
       ${live ? `<button class="close" data-n="${n}">마감</button>` : ""}
     </div>`);
   }

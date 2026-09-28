@@ -358,7 +358,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, set, onValue, get, child }
+import { getDatabase, ref, push, set, update, onValue, get, child }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -437,19 +437,55 @@ let firstOrder = true;
 try { firstOrder = localStorage.getItem(setupKey) !== "done"; } catch (e) {}
 $("setupChk").checked = firstOrder;
 
+/**
+ * 테이블 상태를 읽어 "상차림비를 받아야 하는 주문인지" 판단한다.
+ *
+ *   tables/3 = { openedAt, feeCharged }
+ *     openedAt   : 자리가 열린 시각. 직원 앱의 [착석] 또는 첫 주문이 찍는다.
+ *     feeCharged : 상차림비를 이미 받았는지. 첫 주문이 찍는다.
+ *
+ * 착석만으로 상차림비가 면제되면 안 되므로, 판단 기준은 openedAt 이 아니라
+ * feeCharged 다. 직원 앱이 자리를 열어 두어도 그 팀의 첫 주문에는 상차림비가 붙는다.
+ */
+let tableSnap = null;   // { exists, openedAt, feeCharged }
+
 async function syncTableState() {
   if (tableNo <= 0) return;
   try {
     const snap = await get(ref(db, `tables/${tableNo}`));
-    const openedAt = snap.exists() ? snap.val().openedAt : 0;
-    const live = openedAt && (Date.now() - openedAt) < TABLE_EXPIRE;
-    firstOrder = !live;
+    const v = snap.exists() ? (snap.val() || {}) : null;
+    const stale = v && v.openedAt && (Date.now() - v.openedAt) >= TABLE_EXPIRE;
+    tableSnap = v && !stale
+      ? { exists: true, openedAt: v.openedAt || 0, feeCharged: v.feeCharged === true }
+      : { exists: false, openedAt: 0, feeCharged: false };
+    firstOrder = !tableSnap.feeCharged;
   } catch (e) {
     console.warn("테이블 상태를 못 읽어 폰 기록으로 판단합니다", e);
   }
   $("setupChk").checked = firstOrder;
   if (typeof renderCart === "function") { renderCart(); refreshBar(); }
   checkName();
+}
+
+/** 주문이 들어간 뒤 "이 테이블 상차림비 받음" 표시를 남긴다. */
+async function markFeeCharged(orderId) {
+  const payload = { feeCharged: true, orderId };
+  // 자리가 아직 안 열려 있으면(직원 착석 없이 바로 주문) 여는 것도 겸한다.
+  if (!tableSnap || !tableSnap.exists) payload.openedAt = Date.now();
+  try {
+    await update(ref(db, `tables/${tableNo}`), payload);
+  } catch (e) {
+    // 그 사이 직원이 착석을 눌러 openedAt 이 생겼을 수 있다. 다시 읽고 한 번만 재시도.
+    console.warn("상차림비 표시 실패, 다시 시도합니다", e);
+    try {
+      const snap = await get(ref(db, `tables/${tableNo}`));
+      const retry = { feeCharged: true, orderId };
+      if (!snap.exists()) retry.openedAt = Date.now();
+      await update(ref(db, `tables/${tableNo}`), retry);
+    } catch (e2) {
+      console.warn("상차림비 표시를 남기지 못했습니다", e2);
+    }
+  }
 }
 
 async function loadMenu() {
@@ -613,7 +649,8 @@ $("submitBtn").onclick = async () => {
   cart.forEach((q, i) => items.push({ name: menu[i].name, qty: q, price: menu[i].price }));
   if ($("setupChk").checked) items.push({ name: SETUP_NAME, qty: 1, price: SETUP_FEE });
   const order = {
-    tableNo, customerName: $("nameInput").value.trim(), depositorName: depositorName(),
+    tableNo, tableKey: String(tableNo),
+    customerName: $("nameInput").value.trim(), depositorName: depositorName(),
     amount: total(), items, status: "WAITING", createdAt: Date.now()
   };
 
@@ -625,12 +662,12 @@ $("submitBtn").onclick = async () => {
       localStorage.setItem("jujeom_order_id", r.key);
       localStorage.setItem(setupKey, "done");
     } catch (e) {}
-    // 이 테이블은 이제 "자리 연 상태". 다음 주문부터는 누구 폰이든 상차림비가 빠진다.
-    // 이미 도장이 찍혀 있으면 규칙에서 막히는데, 그건 정상이라 무시한다.
-    if (firstOrder) {
+    // 상차림비를 받았으면 테이블에 표시를 남긴다.
+    // 이후로는 누구 폰으로 주문해도 상차림비가 빠지고 최소주문도 풀린다.
+    if ($("setupChk").checked) {
       firstOrder = false;
-      set(ref(db, `tables/${tableNo}`), { openedAt: Date.now() })
-        .catch(e => console.warn("테이블 도장 실패(이미 열려 있을 수 있음)", e));
+      if (tableSnap) tableSnap.feeCharged = true;
+      markFeeCharged(r.key);
     }
     showPay();
   } catch (e) {
