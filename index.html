@@ -368,7 +368,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, set, update, onValue, get, child }
+import { getDatabase, ref, push, set, update, onValue, get, child, goOffline, goOnline }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -432,6 +432,12 @@ let menu = DEFAULT_MENU;
 const cart = new Map();
 let sheetIdx = -1, sheetQty = 1;
 let currentOrder = null, currentOrderId = null, finished = false;
+/**
+ * 무료 플랜은 동시 접속이 100명까지다. 페이지를 열어둔 손님 한 명이 한 자리를 차지하므로,
+ * 볼 일이 끝났으면 연결을 놓아 준다. 그래야 새 손님이 주문을 넣을 수 있다.
+ */
+let unwatchOrder = null;
+let idleTimer = null;
 
 const $ = id => document.getElementById(id);
 const won = n => n.toLocaleString("ko-KR") + "원";
@@ -781,7 +787,7 @@ function showPay() {
   }, 5 * 60 * 1000);
 
   // 주문 전체를 구독한다 — 상태뿐 아니라 얼마가 들어왔는지까지 실시간으로 받는다
-  onValue(ref(db, "orders/" + currentOrderId), snap => {
+  unwatchOrder = onValue(ref(db, "orders/" + currentOrderId), snap => {
     const v = snap.val();
     if (!v) return;
     renderPayProgress(v);
@@ -849,6 +855,9 @@ function copyBtn(btn, text, label) {
 function showDone(v) {
   if (finished) return;
   finished = true;
+  // 더 받을 소식이 없다. 연결을 놓아 다음 손님에게 자리를 넘긴다.
+  try { if (unwatchOrder) { unwatchOrder(); unwatchOrder = null; } } catch (e) {}
+  try { goOffline(db); } catch (e) {}
   if (v && v.paidAmount) currentOrder.paidAmount = v.paidAmount;
   $("payPage").classList.remove("on");
   $("donePage").classList.add("on");
@@ -888,7 +897,15 @@ syncTableState();
 // 자리에 앉아 있는 동안 다른 일행이 먼저 주문했을 수 있으니,
 // 화면으로 돌아올 때마다 테이블 상태를 다시 본다.
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") syncTableState();
+  if (document.visibilityState === "visible") {
+    clearTimeout(idleTimer);
+    if (!finished) { try { goOnline(db); } catch (e) {} }
+    syncTableState();
+  } else if (!finished) {
+    // 주머니에 넣어둔 폰이 접속 자리를 계속 붙들고 있지 않도록
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { try { goOffline(db); } catch (e) {} }, 3 * 60 * 1000);
+  }
 });
 </script>
 </body>
