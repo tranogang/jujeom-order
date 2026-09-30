@@ -42,13 +42,25 @@
   .t.late .no,.t.late .st{color:var(--amber)}
   .t.free{opacity:.72}
 
-  .fee{margin-top:5px;font-size:11px;font-weight:800;border-radius:7px;padding:3px 0}
+  .fee{margin-top:5px;font-size:10.5px;font-weight:800;border-radius:7px;padding:4px 2px;
+       line-height:1.25}
+  .fee small{display:block;font-size:9.5px;font-weight:700;opacity:.8}
   .fee.ok{background:#e7f4ec;color:var(--grass)}
   .fee.no{background:#fdecec;color:var(--red)}
   .close{margin-top:9px;width:100%;height:32px;border-radius:9px;border:0;
          background:var(--blue);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer}
   .t.late .close{background:var(--amber)}
 
+  .emg{display:flex;align-items:center;gap:6px;cursor:pointer;
+       padding:4px 9px;border:1px solid var(--line);border-radius:8px}
+  .emg input{accent-color:var(--red);margin:0}
+  .emgbar{display:none;margin:0 0 14px;padding:11px 14px;border-radius:12px;
+          background:#fdecec;border:1px solid #f5c2c2;color:#8a1f1f;
+          font-size:13px;font-weight:700;line-height:1.5}
+  .emgbar.on{display:block}
+  .expired{margin-top:5px;font-size:10px;font-weight:800;border-radius:7px;padding:3px 2px;
+           background:#f3f4f6;color:var(--muted);white-space:nowrap;
+           overflow:hidden;text-overflow:ellipsis}
   .note{margin-top:20px;font-size:12.5px;color:var(--muted);line-height:1.6}
   .note b{color:var(--txt)}
 
@@ -69,23 +81,29 @@
 <header>
   <div>
     <h1>테이블 현황</h1>
-    <div class="sub">관리자 앱의 착석·이용종료가 여기 반영됩니다 · 앱을 안 쓸 때는 <b>마감</b>을 직접 눌러주세요</div>
+    <div class="sub">보기 전용 · 착석과 이용 종료는 <b>테이블 관리 앱</b>에서 하세요</div>
   </div>
   <div class="legend">
     <span><i style="background:#dde6f1"></i>비어있음</span>
     <span><i style="background:#0b4da2"></i>사용 중</span>
     <span><i style="background:#ea580c"></i>2시간 경과</span>
+    <label class="emg"><input type="checkbox" id="emgChk"> 비상 모드</label>
   </div>
 </header>
 
 <main>
+  <div class="emgbar" id="emgBar">
+    비상 모드입니다. 여기서 마감하면 <b>테이블 관리 앱과 어긋납니다.</b>
+    앱이 안 될 때만 쓰고, 앱이 살아나면 그쪽에서 이용 종료를 다시 눌러주세요.
+  </div>
   <div class="grid" id="grid"></div>
   <div class="note">
+    이 화면은 <b>테이블 관리 앱을 그대로 비추는 거울</b>입니다. 착석과 이용 종료는 앱에서 하세요.<br>
     <b>상차림비는 테이블당 한 번만</b> 받습니다. 한 번 받은 테이블은 누구 폰으로 주문해도
     상차림비가 붙지 않고 최소주문금액도 풀립니다.<br>
     <b>사용 중 · 상차림비 아직</b>은 자리는 잡았는데 아직 주문이 없는 테이블입니다 — 정상입니다.<br>
-    손님이 나갔는데 마감을 안 하면 <b>다음 팀에게 상차림비를 못 받습니다.</b> 꼭 눌러주세요.
-    (관리자 앱에서 <b>이용 종료</b>를 누르면 여기서도 자동으로 비워집니다)
+    앱에서 <b>이용 종료</b>를 눌러야 다음 팀에게 상차림비를 다시 받습니다.
+    3시간이 지나면 자동으로 풀리지만, 회전이 그보다 빠르면 놓칩니다.
   </div>
 </main>
 
@@ -145,6 +163,9 @@ function elapsed(ms) {
   return `${Math.floor(m / 60)}시간 ${m % 60}분 경과`;
 }
 
+/** 비상 모드일 때만 마감 버튼을 보여 준다. 평소엔 앱이 테이블의 주인이다. */
+let emergency = false;
+
 function draw() {
   const now = Date.now();
   const cells = [];
@@ -160,8 +181,9 @@ function draw() {
       <div class="no">${n}</div>
       <div class="st">${live ? "사용 중" : "비어있음"}</div>
       <div class="el">${live ? elapsed(age) : ""}</div>
-      ${live ? `<div class="fee ${fee ? "ok" : "no"}">상차림비 ${fee ? "받음" : "아직"}</div>` : ""}
-      ${live ? `<button class="close" data-n="${n}">마감</button>` : ""}
+      ${live ? `<div class="fee ${fee ? "ok" : "no"}">${fee ? "받음" : "미수"}<small>상차림비</small></div>` : ""}
+      ${!live && openedAt ? `<div class="expired">3시간 경과 · 해제</div>` : ""}
+      ${live && emergency ? `<button class="close" data-n="${n}">마감</button>` : ""}
     </div>`);
   }
   $("grid").innerHTML = cells.join("");
@@ -190,6 +212,12 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $("toast").classList.remove("on"), 1800);
 }
+
+$("emgChk").onchange = e => {
+  emergency = e.target.checked;
+  $("emgBar").classList.toggle("on", emergency);
+  draw();
+};
 
 // 경과 시간이 흘러가게 1분마다 다시 그린다
 setInterval(draw, 60000);
