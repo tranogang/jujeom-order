@@ -71,9 +71,9 @@
 
   .items{margin:16px 0 6px;display:flex;flex-direction:column;gap:9px}
   .it{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;line-height:1.25}
-  .it .q{background:#e4eefc;border:1px solid #cddffa;border-radius:8px;
-         min-width:44px;text-align:center;padding:4px 8px;font-size:20px;font-weight:800;
-         color:var(--blue);flex:0 0 auto}
+  .it .q{background:var(--blue);border:1px solid var(--blue);border-radius:8px;
+         min-width:56px;text-align:center;padding:4px 10px;font-size:20px;font-weight:800;
+         color:#fff;flex:0 0 auto;letter-spacing:-.3px}
 
   .act{width:100%;margin-top:auto;padding-top:16px;display:flex;gap:8px}
   .act button{flex:1;height:58px;border:0;border-radius:12px;
@@ -254,7 +254,7 @@ function render() {
       const cooking = o.status === "COOKING";
       // 상차림비는 조리할 게 아니니 주방 화면에선 감춘다
       const items = (o.items || []).filter(i => i.name !== "상차림비").map(i =>
-        `<div class="it"><span class="q">${i.qty}</span><span>${i.name}</span></div>`).join("");
+        `<div class="it"><span class="q">${i.qty}개</span><span>${i.name}</span></div>`).join("");
 
       // 조리 대기면 [조리 시작] + [바로 완료], 조리 중이면 [전달 완료] + [되돌리기]
       const act = cooking
