@@ -49,6 +49,10 @@
   .fee.no{background:#fdecec;color:var(--red)}
   .close{margin-top:9px;width:100%;height:32px;border-radius:9px;border:0;
          background:var(--blue);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer}
+  /* 현금으로 상차림비를 받았을 때 직원이 직접 찍는 버튼 */
+  .takefee{margin-top:7px;width:100%;height:34px;border-radius:9px;border:0;
+           background:var(--grass);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer}
+  .takefee:active{opacity:.75}
   .t.late .close{background:var(--amber)}
 
   .emg{display:flex;align-items:center;gap:6px;cursor:pointer;
@@ -102,6 +106,8 @@
     <b>상차림비는 테이블당 한 번만</b> 받습니다. 한 번 받은 테이블은 누구 폰으로 주문해도
     상차림비가 붙지 않고 최소주문금액도 풀립니다.<br>
     <b>사용 중 · 상차림비 아직</b>은 자리는 잡았는데 아직 주문이 없는 테이블입니다 — 정상입니다.<br>
+    현금으로 상차림비를 받았다면 <b>상차림비 받음</b>을 눌러주세요. 그 테이블은 이후 주문에
+    상차림비가 안 붙고 최소주문도 풀립니다.<br>
     앱에서 <b>이용 종료</b>를 눌러야 다음 팀에게 상차림비를 다시 받습니다.
     3시간이 지나면 자동으로 풀리지만, 회전이 그보다 빠르면 놓칩니다.
   </div>
@@ -120,7 +126,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, onValue, remove }
+import { getDatabase, ref, onValue, remove, update }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -183,6 +189,7 @@ function draw() {
       <div class="el">${live ? elapsed(age) : ""}</div>
       ${live ? `<div class="fee ${fee ? "ok" : "no"}">${fee ? "받음" : "미수"}<small>상차림비</small></div>` : ""}
       ${!live && openedAt ? `<div class="expired">3시간 경과 · 해제</div>` : ""}
+      ${live && !fee ? `<button class="takefee" data-fee="${n}">상차림비 받음</button>` : ""}
       ${live && emergency ? `<button class="close" data-n="${n}">마감</button>` : ""}
     </div>`);
   }
@@ -190,6 +197,8 @@ function draw() {
 }
 
 $("grid").onclick = async e => {
+  const f = e.target.closest("button[data-fee]");
+  if (f) return takeFee(f);
   const b = e.target.closest("button[data-n]");
   if (!b) return;
   const n = +b.dataset.n;
@@ -204,6 +213,25 @@ $("grid").onclick = async e => {
     b.disabled = false; b.textContent = "마감";
   }
 };
+
+/**
+ * 현금으로 상차림비를 받았을 때 직원이 직접 찍는다.
+ * 찍고 나면 그 테이블은 누구 폰으로 주문해도 상차림비가 안 붙고 최소주문도 풀린다.
+ * openedAt 은 건드리지 않는다 (앱이 연 시각을 그대로 둬야 경과 시간이 맞다).
+ */
+async function takeFee(btn) {
+  const n = +btn.dataset.fee;
+  if (!confirm(`${n}번 테이블 상차림비를 받은 걸로 처리할까요?\n\n이 테이블은 앞으로 상차림비가 안 붙고 최소주문도 풀립니다.`)) return;
+  btn.disabled = true; btn.textContent = "…";
+  try {
+    await update(ref(db, `tables/${n}`), { feeCharged: true, byStaff: true });
+    toast(`${n}번 상차림비 받음`);
+  } catch (err) {
+    console.error(err);
+    alert("처리하지 못했어요. 이 기기가 등록되어 있는지 확인해주세요.");
+    btn.disabled = false; btn.textContent = "상차림비 받음";
+  }
+}
 
 let toastTimer;
 function toast(msg) {
