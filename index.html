@@ -671,7 +671,13 @@ function refreshBar() {
   $("cartCount").textContent = c;
   $("cartLabel").textContent = c === 0 ? "메뉴를 담아주세요" : `${won(total())} · 장바구니 보기`;
 }
-$("cartBtn").onclick = () => { renderCart(); openSheet("cartSheet"); };
+$("cartBtn").onclick = () => {
+  renderCart(); openSheet("cartSheet");
+  // 장바구니를 열 때마다 테이블 상태를 다시 읽는다.
+  // 일행이 먼저 주문해 상차림비가 이미 걷혔는데 이 폰이 그 전에 열어 둔 화면이면,
+  // 상차림비와 최소주문이 잘못 붙은 채로 남기 때문이다.
+  syncTableState();
+};
 $("setupChk").onchange = () => { renderCart(); refreshBar(); };
 
 function renderCart() {
