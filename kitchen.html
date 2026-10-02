@@ -142,6 +142,7 @@
   <button data-f="ALL" class="on">전체 <span class="c" id="tAll">0</span></button>
   <button data-f="PAID">조리 대기 <span class="c" id="tPaid">0</span></button>
   <button data-f="COOKING">조리 중 <span class="c" id="tCook">0</span></button>
+  <button data-f="SERVED">완료 <span class="c" id="tServed">0</span></button>
 </nav>
 
 <main id="list"></main>
@@ -190,7 +191,7 @@ const auth = getAuth(app);
 const $ = id => document.getElementById(id);
 let orders = [];
 let recent = [];            // 방금 완료 처리한 주문 (되돌리기용)
-let filter = "ALL";         // ALL / PAID / COOKING
+let filter = "ALL";         // ALL / PAID / COOKING / SERVED
 const seen = new Set();
 let firstLoad = true;
 
@@ -226,15 +227,22 @@ function toCook(o) { return o.status === "PAID" || o.status === "COOKING"; }
 
 function render() {
   const all = orders.filter(toCook).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const done = orders.filter(o => o.status === "SERVED").length;
+  // 전달 완료된 주문 — 최근에 나간 것이 위로. 확인용이라 최근 60건만 보여 준다.
+  const served = orders.filter(o => o.status === "SERVED")
+                       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const done = served.length;
+  const showingDone = filter === "SERVED";
 
   const nPaid = all.filter(o => o.status === "PAID").length;
   const nCooking = all.filter(o => o.status === "COOKING").length;
   $("tAll").textContent = all.length;
   $("tPaid").textContent = nPaid;
   $("tCook").textContent = nCooking;
+  $("tServed").textContent = done;
 
-  const list = filter === "ALL" ? all : all.filter(o => o.status === filter);
+  const list = showingDone ? served.slice(0, 60)
+             : filter === "ALL" ? all
+             : all.filter(o => o.status === filter);
 
   $("nCook").textContent = all.length;
   $("nDone").textContent = done;
@@ -242,6 +250,7 @@ function render() {
   if (!list.length) {
     const msg = filter === "PAID" ? "조리 대기 중인 주문이 없습니다"
               : filter === "COOKING" ? "조리 중인 주문이 없습니다"
+              : showingDone ? "아직 전달 완료된 주문이 없습니다"
               : "조리할 주문이 없습니다";
     $("list").innerHTML =
       `<div class="empty">${msg}<br>
@@ -249,15 +258,18 @@ function render() {
   } else {
     $("list").innerHTML = list.map(o => {
       const min = Math.floor((Date.now() - (o.createdAt || Date.now())) / 60000);
-      const late = min >= LATE_MIN;
-      const fresh = !seen.has(o.id) && !firstLoad;
+      const servedCard = o.status === "SERVED";
+      const late = !servedCard && min >= LATE_MIN;
+      const fresh = !servedCard && !seen.has(o.id) && !firstLoad;
       const cooking = o.status === "COOKING";
       // 상차림비는 조리할 게 아니니 주방 화면에선 감춘다
       const items = (o.items || []).filter(i => i.name !== "상차림비").map(i =>
         `<div class="it"><span class="q">${i.qty}개</span><span>${i.name}</span></div>`).join("");
 
       // 조리 대기면 [조리 시작] + [바로 완료], 조리 중이면 [전달 완료] + [되돌리기]
-      const act = cooking
+      const act = servedCard
+        ? `<button class="start" data-to="COOKING">조리로 되돌리기</button>`
+        : cooking
         ? `<button data-to="SERVED">전달 완료</button>
            <button class="ghost" data-to="PAID" title="조리 대기로">↩</button>`
         : `<button class="start" data-to="COOKING">조리 시작</button>
@@ -273,13 +285,14 @@ function render() {
           <div class="elapsed"><div class="m">${min}</div><div class="s">분 경과</div></div>
         </div>
         ${cooking ? `<div style="display:flex"><span class="badge">조리 중</span></div>` : ""}
+        ${servedCard ? `<div style="display:flex"><span class="badge" style="background:#e7f4ec;color:#1e7a46">전달 완료</span></div>` : ""}
         <div class="items">${items}</div>
         <div class="act">${act}</div>
       </div>`;
     }).join("");
   }
 
-  if (!firstLoad && list.some(o => !seen.has(o.id))) beep();
+  if (!firstLoad && !showingDone && list.some(o => !seen.has(o.id))) beep();
   list.forEach(o => seen.add(o.id));
 
   renderUndo();
